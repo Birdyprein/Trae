@@ -11,6 +11,7 @@ export default function SearchBar({ value, onChange }: Props) {
       <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
       <input
         type="text"
+        aria-label="搜索基金"
         placeholder="搜索基金名称或代码..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -21,6 +22,8 @@ export default function SearchBar({ value, onChange }: Props) {
       />
       {value && (
         <button
+          type="button"
+          aria-label="清除搜索"
           onClick={() => onChange('')}
           className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-white transition-colors"
         >

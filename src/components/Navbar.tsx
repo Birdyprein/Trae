@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, TrendingUp, ChevronDown } from 'lucide-react';
+import { Menu, X, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Navbar() {
@@ -44,6 +44,8 @@ export default function Navbar() {
           <button
             className="md:hidden text-gray-300 hover:text-white"
             onClick={() => setOpen(!open)}
+            aria-label={open ? '关闭菜单' : '打开菜单'}
+            aria-expanded={open}
           >
             {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>

@@ -8,13 +8,22 @@ import { marketIndices, marketTrendData, funds } from '@/data/mockData';
 import MarketIndexCard from '@/components/MarketIndexCard';
 import FundCard from '@/components/FundCard';
 
+const RISK_LABELS: Record<number, string> = {
+  1: '低风险',
+  2: '中低风险',
+  3: '中风险',
+  4: '中高风险',
+  5: '高风险',
+};
+
 function useCountUp(end: number, duration: number = 2000) {
   const [val, setVal] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
   const started = useRef(false);
+  const rafId = useRef<number>(0);
 
   useEffect(() => {
-    if (started.current) return;
+    started.current = false;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -25,16 +34,21 @@ function useCountUp(end: number, duration: number = 2000) {
               const elapsed = time - startTime;
               const progress = Math.min(elapsed / duration, 1);
               setVal(Math.round(end * progress));
-              if (progress < 1) requestAnimationFrame(animate);
+              if (progress < 1) {
+                rafId.current = requestAnimationFrame(animate);
+              }
             };
-            requestAnimationFrame(animate);
+            rafId.current = requestAnimationFrame(animate);
           }
         });
       },
       { threshold: 0.3 }
     );
     if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+    };
   }, [end, duration]);
 
   return { val, ref };

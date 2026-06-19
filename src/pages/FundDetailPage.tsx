@@ -5,6 +5,14 @@ import NavChart from '@/components/NavChart';
 import PerformanceTable from '@/components/PerformanceTable';
 import RiskMetricsCards from '@/components/RiskMetricsCards';
 
+const RISK_LABELS: Record<number, string> = {
+  1: '低风险',
+  2: '中低风险',
+  3: '中风险',
+  4: '中高风险',
+  5: '高风险',
+};
+
 export default function FundDetailPage() {
   const { id } = useParams<{ id: string }>();
   const fund = useFund(id!);
@@ -109,7 +117,7 @@ export default function FundDetailPage() {
             ))}
           </div>
           <span className="text-sm text-muted">
-            {['', '低风险', '中低风险', '中风险', '中高风险', '高风险'][fund.riskLevel]}
+            {RISK_LABELS[fund.riskLevel]}
           </span>
         </div>
       </div>

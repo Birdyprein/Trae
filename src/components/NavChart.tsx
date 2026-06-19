@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import type { TooltipProps } from 'recharts';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -16,6 +17,18 @@ const ranges: { label: string; value: TimeRange }[] = [
   { label: '全部', value: 'all' },
 ];
 
+function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-surface-card border border-surface-border rounded-lg px-4 py-2.5 shadow-xl">
+        <p className="text-xs text-muted mb-1">{label}</p>
+        <p className="text-sm font-bold text-gold-400">{Number(payload[0].value).toFixed(4)}</p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function NavChart({ data }: Props) {
   const [range, setRange] = useState<TimeRange>('1m');
 
@@ -24,21 +37,21 @@ export default function NavChart({ data }: Props) {
     return data.slice(-daysMap[range]);
   }, [data, range]);
 
-  const minVal = Math.min(...filtered.map((d) => d.value));
-  const maxVal = Math.max(...filtered.map((d) => d.value));
-  const padding = (maxVal - minVal) * 0.1;
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-surface-card border border-surface-border rounded-lg px-4 py-2.5 shadow-xl">
-          <p className="text-xs text-muted mb-1">{label}</p>
-          <p className="text-sm font-bold text-gold-400">{payload[0].value.toFixed(4)}</p>
-        </div>
-      );
+  const { minVal, maxVal, padding } = useMemo(() => {
+    if (filtered.length === 0) return { minVal: 0, maxVal: 0, padding: 0 };
+    let min = Infinity;
+    let max = -Infinity;
+    for (const d of filtered) {
+      if (d.value < min) min = d.value;
+      if (d.value > max) max = d.value;
     }
-    return null;
-  };
+    const pad = (max - min) * 0.1;
+    return { minVal: min, maxVal: max, padding: pad };
+  }, [filtered]);
+
+  const handleRangeChange = useCallback((value: TimeRange) => {
+    setRange(value);
+  }, []);
 
   return (
     <div className="glass-card p-6">
@@ -48,7 +61,7 @@ export default function NavChart({ data }: Props) {
           {ranges.map((r) => (
             <button
               key={r.value}
-              onClick={() => setRange(r.value)}
+              onClick={() => handleRangeChange(r.value)}
               className={`px-3 py-1 text-xs rounded-md transition-all duration-300 ${
                 range === r.value
                   ? 'bg-gold-500 text-surface font-semibold'
@@ -60,36 +73,40 @@ export default function NavChart({ data }: Props) {
           ))}
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={320}>
-        <LineChart data={filtered} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-          <XAxis
-            dataKey="date"
-            tick={{ fill: '#64748B', fontSize: 11 }}
-            tickLine={false}
-            axisLine={false}
-            interval="preserveStartEnd"
-          />
-          <YAxis
-            domain={[minVal - padding, maxVal + padding]}
-            tick={{ fill: '#64748B', fontSize: 11 }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(v: number) => v.toFixed(2)}
-            width={60}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke="#D4A853"
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 4, fill: '#D4A853', stroke: '#0A0E17', strokeWidth: 2 }}
-            animationDuration={1000}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      {filtered.length > 0 ? (
+        <ResponsiveContainer width="100%" height={320}>
+          <LineChart data={filtered} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+            <XAxis
+              dataKey="date"
+              tick={{ fill: '#64748B', fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              domain={[minVal - padding, maxVal + padding]}
+              tick={{ fill: '#64748B', fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v: number) => v.toFixed(2)}
+              width={60}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="#D4A853"
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4, fill: '#D4A853', stroke: '#0A0E17', strokeWidth: 2 }}
+              animationDuration={1000}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="flex items-center justify-center h-80 text-muted text-sm">暂无数据</div>
+      )}
     </div>
   );
 }

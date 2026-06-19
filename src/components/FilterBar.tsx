@@ -6,7 +6,7 @@ interface Props {
   onTypeChange: (type: FundType | '全部') => void;
   sortField: SortField;
   sortDir: 'asc' | 'desc';
-  onToggleSort: (field: SortField) => void;
+  onSortChange: (field: SortField, dir: 'asc' | 'desc') => void;
 }
 
 const types: (FundType | '全部')[] = ['全部', '股票型', '混合型', '债券型', '货币型', '指数型'];
@@ -17,7 +17,7 @@ const sortOptions: { label: string; field: SortField }[] = [
   { label: '日涨跌幅', field: 'dailyChange' },
 ];
 
-export default function FilterBar({ typeFilter, onTypeChange, sortField, sortDir, onToggleSort }: Props) {
+export default function FilterBar({ typeFilter, onTypeChange, sortField, sortDir, onSortChange }: Props) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="flex flex-wrap gap-2">
@@ -38,13 +38,13 @@ export default function FilterBar({ typeFilter, onTypeChange, sortField, sortDir
 
       <div className="flex items-center gap-2">
         <ArrowUpDown className="w-4 h-4 text-muted" />
+        <label htmlFor="sort-select" className="sr-only">排序方式</label>
         <select
+          id="sort-select"
           value={`${sortField}-${sortDir}`}
           onChange={(e) => {
             const [field, dir] = e.target.value.split('-') as [SortField, 'asc' | 'desc'];
-            if (field !== sortField || dir !== sortDir) {
-              onToggleSort(field);
-            }
+            onSortChange(field, dir);
           }}
           className="bg-surface-card border border-surface-border rounded-lg px-3 py-1.5 text-sm text-white
                      focus:outline-none focus:border-gold-500/50 cursor-pointer"

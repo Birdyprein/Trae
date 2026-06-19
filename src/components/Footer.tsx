@@ -7,9 +7,9 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} 睿盈基金. 数据仅供参考，不构成投资建议.
           </p>
           <div className="flex gap-6 text-sm text-muted">
-            <span className="hover:text-gray-300 cursor-pointer transition-colors">关于我们</span>
-            <span className="hover:text-gray-300 cursor-pointer transition-colors">风险提示</span>
-            <span className="hover:text-gray-300 cursor-pointer transition-colors">隐私政策</span>
+            <button type="button" className="hover:text-gray-300 cursor-pointer transition-colors bg-transparent border-none p-0">关于我们</button>
+            <button type="button" className="hover:text-gray-300 cursor-pointer transition-colors bg-transparent border-none p-0">风险提示</button>
+            <button type="button" className="hover:text-gray-300 cursor-pointer transition-colors bg-transparent border-none p-0">隐私政策</button>
           </div>
         </div>
       </div>

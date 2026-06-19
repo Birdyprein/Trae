@@ -23,7 +23,7 @@ export default function FundCard({ fund, index }: Props) {
             {fund.type}
           </span>
         </div>
-        <div className="flex gap-0.5">
+        <div className="flex gap-0.5" role="img" aria-label={`风险等级 ${fund.riskLevel} 级`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Star
               key={i}

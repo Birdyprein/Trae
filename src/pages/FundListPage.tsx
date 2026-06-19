@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { useFunds } from '@/hooks/useFunds';
 import SearchBar from '@/components/SearchBar';
@@ -9,12 +9,28 @@ import Pagination from '@/components/Pagination';
 const PAGE_SIZE = 8;
 
 export default function FundListPage() {
-  const { funds, search, setSearch, typeFilter, setTypeFilter, sortField, sortDir, toggleSort } = useFunds();
+  const { funds, search, setSearch, typeFilter, setTypeFilter, sortField, sortDir, setSort } = useFunds();
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, typeFilter, sortField, sortDir]);
 
   const totalPages = Math.ceil(funds.length / PAGE_SIZE);
   const currentPage = Math.min(page, Math.max(totalPages, 1));
   const paged = funds.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+  };
+
+  const handleTypeChange = (type: typeof typeFilter) => {
+    setTypeFilter(type);
+  };
+
+  const handleSortChange = (field: typeof sortField, dir: typeof sortDir) => {
+    setSort(field, dir);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -24,13 +40,13 @@ export default function FundListPage() {
       </div>
 
       <div className="space-y-5 mb-8 animate-on-scroll stagger-1">
-        <SearchBar value={search} onChange={setSearch} />
+        <SearchBar value={search} onChange={handleSearchChange} />
         <FilterBar
           typeFilter={typeFilter}
-          onTypeChange={(t) => { setTypeFilter(t); setPage(1); }}
+          onTypeChange={handleTypeChange}
           sortField={sortField}
           sortDir={sortDir}
-          onToggleSort={toggleSort}
+          onSortChange={handleSortChange}
         />
       </div>
 

@@ -30,16 +30,12 @@ export function useFunds() {
     return result;
   }, [search, typeFilter, sortField, sortDir]);
 
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
-    } else {
-      setSortField(field);
-      setSortDir('desc');
-    }
+  const setSort = (field: SortField, dir: 'asc' | 'desc') => {
+    setSortField(field);
+    setSortDir(dir);
   };
 
-  return { funds: filtered, search, setSearch, typeFilter, setTypeFilter, sortField, sortDir, toggleSort };
+  return { funds: filtered, search, setSearch, typeFilter, setTypeFilter, sortField, sortDir, setSort };
 }
 
 export function useFund(id: string): Fund | undefined {
