@@ -1,0 +1,249 @@
+import type { Fund, MarketIndex, NavPoint } from '@/types';
+
+function generateNavHistory(baseValue: number, days: number, trend: number): NavPoint[] {
+  const history: NavPoint[] = [];
+  let value = baseValue * (1 - trend * 0.3);
+  const now = new Date();
+  for (let i = days; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    const noise = (Math.random() - 0.48) * 0.015;
+    const drift = trend / days;
+    value = value * (1 + drift + noise);
+    history.push({
+      date: date.toISOString().slice(0, 10),
+      value: Math.round(value * 10000) / 10000,
+    });
+  }
+  return history;
+}
+
+export const marketIndices: MarketIndex[] = [
+  { name: '上证指数', code: '000001.SH', value: 3358.62, change: 28.47, changePercent: 0.85 },
+  { name: '恒生指数', code: 'HSI', value: 19784.25, change: -156.73, changePercent: -0.79 },
+  { name: '标普500', code: 'SPX', value: 5872.16, change: 42.61, changePercent: 0.73 },
+];
+
+export const marketTrendData: NavPoint[] = (() => {
+  const base = 3250;
+  const data: NavPoint[] = [];
+  let value = base;
+  const now = new Date();
+  for (let i = 30; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    value = value * (1 + (Math.random() - 0.48) * 0.02);
+    data.push({
+      date: date.toISOString().slice(0, 10),
+      value: Math.round(value * 100) / 100,
+    });
+  }
+  return data;
+})();
+
+export const funds: Fund[] = [
+  {
+    id: '1',
+    code: '000001',
+    name: '睿远成长价值混合A',
+    type: '混合型',
+    manager: '傅鹏博',
+    establishDate: '2019-03-26',
+    scale: 287.56,
+    nav: 1.8523,
+    accumulatedNav: 2.3156,
+    dailyChange: 1.23,
+    yearlyReturn: 18.56,
+    riskLevel: 3,
+    returns: { month1: 3.25, month3: 8.47, month6: 15.32, year1: 18.56, year3: 42.18 },
+    riskMetrics: { maxDrawdown: -15.32, volatility: 18.56, sharpeRatio: 1.23, alpha: 5.67 },
+    navHistory: generateNavHistory(1.8523, 365, 0.18),
+  },
+  {
+    id: '2',
+    code: '000002',
+    name: '易方达蓝筹精选混合',
+    type: '混合型',
+    manager: '张坤',
+    establishDate: '2018-09-05',
+    scale: 523.18,
+    nav: 2.3411,
+    accumulatedNav: 2.8912,
+    dailyChange: -0.45,
+    yearlyReturn: 8.23,
+    riskLevel: 4,
+    returns: { month1: -1.25, month3: 2.38, month6: 6.15, year1: 8.23, year3: 15.67 },
+    riskMetrics: { maxDrawdown: -22.18, volatility: 22.34, sharpeRatio: 0.52, alpha: 1.23 },
+    navHistory: generateNavHistory(2.3411, 365, 0.08),
+  },
+  {
+    id: '3',
+    code: '000003',
+    name: '中欧医疗健康混合A',
+    type: '混合型',
+    manager: '葛兰',
+    establishDate: '2016-09-29',
+    scale: 356.42,
+    nav: 1.5234,
+    accumulatedNav: 1.9876,
+    dailyChange: 2.15,
+    yearlyReturn: -5.67,
+    riskLevel: 4,
+    returns: { month1: 5.32, month3: 12.45, month6: 8.21, year1: -5.67, year3: -12.34 },
+    riskMetrics: { maxDrawdown: -35.67, volatility: 28.45, sharpeRatio: -0.18, alpha: -2.34 },
+    navHistory: generateNavHistory(1.5234, 365, -0.05),
+  },
+  {
+    id: '4',
+    code: '000004',
+    name: '天弘沪深300ETF联接A',
+    type: '指数型',
+    manager: '杨超',
+    establishDate: '2015-01-20',
+    scale: 182.34,
+    nav: 1.2845,
+    accumulatedNav: 1.6543,
+    dailyChange: 0.67,
+    yearlyReturn: 12.34,
+    riskLevel: 3,
+    returns: { month1: 2.15, month3: 5.67, month6: 10.23, year1: 12.34, year3: 28.45 },
+    riskMetrics: { maxDrawdown: -12.56, volatility: 16.23, sharpeRatio: 0.89, alpha: 2.15 },
+    navHistory: generateNavHistory(1.2845, 365, 0.12),
+  },
+  {
+    id: '5',
+    code: '000005',
+    name: '招商产业债券A',
+    type: '债券型',
+    manager: '马龙',
+    establishDate: '2012-03-05',
+    scale: 98.76,
+    nav: 1.5623,
+    accumulatedNav: 1.9234,
+    dailyChange: 0.05,
+    yearlyReturn: 4.56,
+    riskLevel: 2,
+    returns: { month1: 0.35, month3: 1.12, month6: 2.34, year1: 4.56, year3: 13.45 },
+    riskMetrics: { maxDrawdown: -1.23, volatility: 3.45, sharpeRatio: 1.56, alpha: 1.89 },
+    navHistory: generateNavHistory(1.5623, 365, 0.04),
+  },
+  {
+    id: '6',
+    code: '000006',
+    name: '工银瑞信货币A',
+    type: '货币型',
+    manager: '王朔',
+    establishDate: '2006-03-20',
+    scale: 1256.89,
+    nav: 1.0,
+    accumulatedNav: 1.0,
+    dailyChange: 0.01,
+    yearlyReturn: 2.15,
+    riskLevel: 1,
+    returns: { month1: 0.18, month3: 0.55, month6: 1.08, year1: 2.15, year3: 6.78 },
+    riskMetrics: { maxDrawdown: 0, volatility: 0.15, sharpeRatio: 3.45, alpha: 0.56 },
+    navHistory: generateNavHistory(1.0, 365, 0.02),
+  },
+  {
+    id: '7',
+    code: '000007',
+    name: '兴全合润混合',
+    type: '混合型',
+    manager: '谢治宇',
+    establishDate: '2010-04-22',
+    scale: 312.45,
+    nav: 2.8765,
+    accumulatedNav: 3.4567,
+    dailyChange: 0.89,
+    yearlyReturn: 22.34,
+    riskLevel: 3,
+    returns: { month1: 4.56, month3: 10.23, month6: 18.45, year1: 22.34, year3: 56.78 },
+    riskMetrics: { maxDrawdown: -18.34, volatility: 20.12, sharpeRatio: 1.45, alpha: 6.78 },
+    navHistory: generateNavHistory(2.8765, 365, 0.22),
+  },
+  {
+    id: '8',
+    code: '000008',
+    name: '富国中证新能源汽车',
+    type: '指数型',
+    manager: '张圣贤',
+    establishDate: '2015-06-18',
+    scale: 156.78,
+    nav: 1.1234,
+    accumulatedNav: 1.3456,
+    dailyChange: 3.45,
+    yearlyReturn: 15.67,
+    riskLevel: 4,
+    returns: { month1: 8.23, month3: 15.67, month6: 12.34, year1: 15.67, year3: 35.67 },
+    riskMetrics: { maxDrawdown: -28.45, volatility: 25.67, sharpeRatio: 0.76, alpha: 3.45 },
+    navHistory: generateNavHistory(1.1234, 365, 0.15),
+  },
+  {
+    id: '9',
+    code: '000009',
+    name: '南方中证500ETF联接A',
+    type: '指数型',
+    manager: '罗文杰',
+    establishDate: '2013-02-06',
+    scale: 234.56,
+    nav: 1.6789,
+    accumulatedNav: 2.0123,
+    dailyChange: 0.34,
+    yearlyReturn: 9.87,
+    riskLevel: 4,
+    returns: { month1: 1.23, month3: 4.56, month6: 7.89, year1: 9.87, year3: 22.34 },
+    riskMetrics: { maxDrawdown: -20.15, volatility: 19.87, sharpeRatio: 0.65, alpha: 1.56 },
+    navHistory: generateNavHistory(1.6789, 365, 0.09),
+  },
+  {
+    id: '10',
+    code: '000010',
+    name: '广发科技先锋混合',
+    type: '混合型',
+    manager: '刘格菘',
+    establishDate: '2020-01-22',
+    scale: 198.34,
+    nav: 1.4567,
+    accumulatedNav: 1.7890,
+    dailyChange: 1.89,
+    yearlyReturn: 25.43,
+    riskLevel: 4,
+    returns: { month1: 6.78, month3: 12.34, month6: 20.15, year1: 25.43, year3: 48.67 },
+    riskMetrics: { maxDrawdown: -25.67, volatility: 24.56, sharpeRatio: 1.12, alpha: 7.89 },
+    navHistory: generateNavHistory(1.4567, 365, 0.25),
+  },
+  {
+    id: '11',
+    code: '000011',
+    name: '华夏大盘精选混合',
+    type: '混合型',
+    manager: '陈伟彦',
+    establishDate: '2004-08-11',
+    scale: 456.78,
+    nav: 5.2345,
+    accumulatedNav: 6.7890,
+    dailyChange: -0.23,
+    yearlyReturn: 14.56,
+    riskLevel: 3,
+    returns: { month1: 2.34, month3: 6.78, month6: 11.23, year1: 14.56, year3: 32.15 },
+    riskMetrics: { maxDrawdown: -14.23, volatility: 17.89, sharpeRatio: 0.98, alpha: 3.45 },
+    navHistory: generateNavHistory(5.2345, 365, 0.14),
+  },
+  {
+    id: '12',
+    code: '000012',
+    name: '鹏华丰禄债券',
+    type: '债券型',
+    manager: '刘涛',
+    establishDate: '2016-10-27',
+    scale: 67.89,
+    nav: 1.2345,
+    accumulatedNav: 1.5678,
+    dailyChange: 0.03,
+    yearlyReturn: 5.23,
+    riskLevel: 2,
+    returns: { month1: 0.42, month3: 1.34, month6: 2.67, year1: 5.23, year3: 15.34 },
+    riskMetrics: { maxDrawdown: -0.89, volatility: 2.34, sharpeRatio: 2.12, alpha: 2.34 },
+    navHistory: generateNavHistory(1.2345, 365, 0.05),
+  },
+];
