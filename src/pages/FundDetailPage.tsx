@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, User, TrendingUp, Layers } from 'lucide-react';
+import { ArrowLeft, Calendar, User, TrendingUp, Layers, StarIcon } from 'lucide-react';
 import { useFund } from '@/hooks/useFunds';
+import { useWatchlistStore } from '@/stores/watchlistStore';
 import NavChart from '@/components/NavChart';
 import PerformanceTable from '@/components/PerformanceTable';
 import RiskMetricsCards from '@/components/RiskMetricsCards';
@@ -16,6 +17,8 @@ const RISK_LABELS: Record<number, string> = {
 export default function FundDetailPage() {
   const { id } = useParams<{ id: string }>();
   const fund = useFund(id!);
+  const { toggle, has } = useWatchlistStore();
+  const isWatched = id ? has(id) : false;
 
   if (!fund) {
     return (
@@ -44,6 +47,18 @@ export default function FundDetailPage() {
           <div>
             <div className="flex items-center gap-3 mb-3">
               <h1 className="font-display text-2xl lg:text-3xl font-bold text-white">{fund.name}</h1>
+              <button
+                type="button"
+                aria-label={isWatched ? '取消自选' : '加入自选'}
+                onClick={() => toggle(id!)}
+                className="p-1.5 rounded-lg hover:bg-gold-500/10 transition-colors"
+              >
+                <StarIcon
+                  className={`w-5 h-5 transition-colors ${
+                    isWatched ? 'fill-gold-400 text-gold-400' : 'text-muted hover:text-gold-400'
+                  }`}
+                />
+              </button>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/20">
                 {fund.type}
               </span>

@@ -1,8 +1,33 @@
 import { Link } from 'react-router-dom';
+import { StarIcon } from 'lucide-react';
 import type { Fund } from '@/types';
+import { useWatchlistStore } from '@/stores/watchlistStore';
 
 interface Props {
   funds: Fund[];
+}
+
+function WatchlistButton({ id }: { id: string }) {
+  const { toggle, has } = useWatchlistStore();
+  const isWatched = has(id);
+
+  return (
+    <button
+      type="button"
+      aria-label={isWatched ? '取消自选' : '加入自选'}
+      onClick={(e) => {
+        e.stopPropagation();
+        toggle(id);
+      }}
+      className="p-1 rounded hover:bg-gold-500/10 transition-colors"
+    >
+      <StarIcon
+        className={`w-4 h-4 transition-colors ${
+          isWatched ? 'fill-gold-400 text-gold-400' : 'text-muted hover:text-gold-400'
+        }`}
+      />
+    </button>
+  );
 }
 
 export default function FundTable({ funds }: Props) {
@@ -11,6 +36,7 @@ export default function FundTable({ funds }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-surface-card/50">
+            <th className="w-10 px-3 py-3.5 text-muted font-medium"></th>
             <th className="text-left px-5 py-3.5 text-muted font-medium">基金名称</th>
             <th className="text-left px-5 py-3.5 text-muted font-medium">代码</th>
             <th className="text-left px-5 py-3.5 text-muted font-medium">类型</th>
@@ -27,6 +53,9 @@ export default function FundTable({ funds }: Props) {
                 i % 2 === 0 ? 'bg-surface-card/30' : ''
               }`}
             >
+              <td className="px-3 py-3.5">
+                <WatchlistButton id={fund.id} />
+              </td>
               <td className="px-5 py-3.5">
                 <Link to={`/funds/${fund.id}`} className="text-white hover:text-gold-400 transition-colors font-medium">
                   {fund.name}

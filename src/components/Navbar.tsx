@@ -1,14 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, TrendingUp } from 'lucide-react';
+import { Menu, X, TrendingUp, Star } from 'lucide-react';
 import { useState } from 'react';
+import { useWatchlistStore } from '@/stores/watchlistStore';
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const watchlistCount = useWatchlistStore((s) => s.ids.length);
 
   const links = [
     { to: '/', label: '首页' },
     { to: '/funds', label: '基金列表' },
+    { to: '/watchlist', label: '自选基金', icon: true },
   ];
 
   return (
@@ -27,13 +30,19 @@ export default function Navbar() {
               <Link
                 key={link.to}
                 to={link.to}
-                className={`relative text-sm font-medium transition-colors py-1 ${
+                className={`relative text-sm font-medium transition-colors py-1 flex items-center gap-1.5 ${
                   location.pathname === link.to
                     ? 'text-gold-400'
                     : 'text-gray-300 hover:text-white'
                 }`}
               >
+                {link.icon && <Star className="w-4 h-4" />}
                 {link.label}
+                {link.icon && watchlistCount > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-gold-500 text-surface">
+                    {watchlistCount}
+                  </span>
+                )}
                 {location.pathname === link.to && (
                   <span className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-gold-500 rounded-full" />
                 )}
@@ -58,13 +67,19 @@ export default function Navbar() {
                 key={link.to}
                 to={link.to}
                 onClick={() => setOpen(false)}
-                className={`text-sm font-medium py-2 px-3 rounded-lg transition-colors ${
+                className={`text-sm font-medium py-2 px-3 rounded-lg transition-colors flex items-center gap-1.5 ${
                   location.pathname === link.to
                     ? 'text-gold-400 bg-surface-hover'
                     : 'text-gray-300 hover:text-white hover:bg-surface-hover'
                 }`}
               >
+                {link.icon && <Star className="w-4 h-4" />}
                 {link.label}
+                {link.icon && watchlistCount > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-gold-500 text-surface">
+                    {watchlistCount}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
