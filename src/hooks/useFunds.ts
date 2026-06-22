@@ -1,15 +1,16 @@
-import { useMemo, useState } from 'react';
-import { funds } from '@/data/mockData';
+import { useMemo, useState, useEffect } from 'react';
+import { useFundDataStore } from '@/stores/fundDataStore';
 import type { Fund, FundType, SortField } from '@/types';
 
 export function useFunds() {
+  const allFunds = useFundDataStore((s) => s.funds);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<FundType | '全部'>('全部');
   const [sortField, setSortField] = useState<SortField>('yearlyReturn');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const filtered = useMemo(() => {
-    let result = [...funds];
+    let result = [...allFunds];
 
     if (search) {
       const s = search.toLowerCase();
@@ -28,7 +29,7 @@ export function useFunds() {
     });
 
     return result;
-  }, [search, typeFilter, sortField, sortDir]);
+  }, [allFunds, search, typeFilter, sortField, sortDir]);
 
   const setSort = (field: SortField, dir: 'asc' | 'desc') => {
     setSortField(field);
@@ -39,5 +40,13 @@ export function useFunds() {
 }
 
 export function useFund(id: string): Fund | undefined {
-  return useMemo(() => funds.find((f) => f.id === id), [id]);
+  const allFunds = useFundDataStore((s) => s.funds);
+  return useMemo(() => allFunds.find((f) => f.id === id), [allFunds, id]);
+}
+
+export function useRealDataLoader() {
+  const loadRealData = useFundDataStore((s) => s.loadRealData);
+  useEffect(() => {
+    loadRealData();
+  }, []);
 }

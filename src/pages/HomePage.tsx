@@ -4,7 +4,9 @@ import { ArrowRight, TrendingUp, BarChart3, Shield } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { marketIndices, marketTrendData, funds } from '@/data/mockData';
+import { marketTrendData } from '@/data/mockData';
+import { useFundDataStore } from '@/stores/fundDataStore';
+import { useRealDataLoader } from '@/hooks/useFunds';
 import MarketIndexCard from '@/components/MarketIndexCard';
 import FundCard from '@/components/FundCard';
 
@@ -67,6 +69,9 @@ function StatItem({ label, value, suffix }: { label: string; value: number; suff
 }
 
 export default function HomePage() {
+  useRealDataLoader();
+  const funds = useFundDataStore((s) => s.funds);
+  const marketIndices = useFundDataStore((s) => s.indices);
   const featuredFunds = funds.slice(0, 6);
 
   return (
