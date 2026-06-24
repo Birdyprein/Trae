@@ -1,9 +1,10 @@
 import { useBirthdayCountup } from '@/hooks/useAge';
 
-const BIRTH_DATE = new Date(1987, 5, 5);
+const MOM_BIRTH_DATE = new Date(1987, 5, 5);
+const CHILD_BIRTH_DATE = new Date(2007, 1, 5, 3, 48, 0);
 
 export default function HeroSection() {
-  const { years, days, hours, minutes, seconds } = useBirthdayCountup(BIRTH_DATE);
+  const { years, days, hours, minutes, seconds } = useBirthdayCountup(CHILD_BIRTH_DATE);
 
   return (
     <section className="min-h-screen flex flex-col items-center justify-center relative px-4 py-20">
@@ -25,7 +26,7 @@ export default function HeroSection() {
         </div>
 
         <div className="opacity-0-init animate-fade-in-up animate-delay-600 glass-card-strong rounded-3xl p-8 md:p-10 mb-10 max-w-2xl mx-auto">
-          <p className="text-rose-200 text-sm tracking-widest mb-6">你已经陪伴我们</p>
+          <p className="text-rose-200 text-sm tracking-widest mb-6">您已经陪伴了我</p>
           <div className="grid grid-cols-5 gap-2 md:gap-4">
             {[
               { value: years, label: '年' },
