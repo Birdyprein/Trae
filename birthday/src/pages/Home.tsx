@@ -1,6 +1,7 @@
 import FloatingParticles from '@/components/FloatingParticles';
 import HeroSection from '@/components/HeroSection';
 import GratitudeCards from '@/components/GratitudeCards';
+import LoveLetter from '@/components/LoveLetter';
 import Timeline from '@/components/Timeline';
 import BirthdayCake from '@/components/BirthdayCake';
 import FooterBlessing from '@/components/FooterBlessing';
@@ -18,6 +19,7 @@ export default function Home() {
       <main className="relative z-10">
         <HeroSection />
         <GratitudeCards />
+        <LoveLetter />
         <Timeline />
         <BirthdayCake />
         <FooterBlessing />
