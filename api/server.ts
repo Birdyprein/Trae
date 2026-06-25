@@ -63,6 +63,26 @@ const TYPE_LABELS: Record<string, string> = {
   fof: 'FOF',
 };
 
+// 排行数据缓存
+interface RankCacheItem {
+  data: any[];
+  time: number;
+}
+const rankCache: Record<string, RankCacheItem> = {};
+const RANK_CACHE_TTL = 10 * 60 * 1000; // 10分钟缓存
+
+function getRankCache(key: string): any[] | null {
+  const item = rankCache[key];
+  if (item && Date.now() - item.time < RANK_CACHE_TTL) {
+    return item.data;
+  }
+  return null;
+}
+
+function setRankCache(key: string, data: any[]) {
+  rankCache[key] = { data, time: Date.now() };
+}
+
 // ============ 基金搜索 ============
 // 数据来源: 天天基金 (东方财富)
 app.get('/api/funds/search', async (req, res) => {
@@ -97,28 +117,35 @@ app.get('/api/funds/list', async (req, res) => {
 
     if (type === 'all') {
       // 全类型：从多个类型中获取并合并
-      const types = ['gp', 'hh', 'zq', 'zs'];
-      const labels = ['股票型', '混合型', '债券型', '指数型'];
-      const allFunds: any[] = [];
-      const perTypeCount = 500;
+      const cacheKey = `all_${sortField}_${sortDir}`;
+      let allFunds = getRankCache(cacheKey);
 
-      for (let i = 0; i < types.length; i++) {
-        const url = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${types[i]}&rs=&gs=0&sc=${sortField}&st=${st}&sd=2024-01-01&ed=2025-12-31&qdii=&tabSubtype=,,,,,&pi=1&pn=${perTypeCount}&dx=1`;
-        const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
-        const jsonStr = text
-          .replace(/^var\s+rankData\s*=\s*/, '')
-          .replace(/;\s*$/, '')
-          .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
-        const data = JSON.parse(jsonStr);
-        const funds = (data.datas || []).map((d: string) => parseRankItem(d, labels[i]));
-        allFunds.push(...funds);
+      if (!allFunds) {
+        const types = ['gp', 'hh', 'zq', 'zs'];
+        const labels = ['股票型', '混合型', '债券型', '指数型'];
+        allFunds = [];
+        const perTypeCount = 10000;
+
+        for (let i = 0; i < types.length; i++) {
+          const url = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${types[i]}&rs=&gs=0&sc=${sortField}&st=${st}&sd=2024-01-01&ed=2025-12-31&qdii=&tabSubtype=,,,,,&pi=1&pn=${perTypeCount}&dx=1`;
+          const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
+          const jsonStr = text
+            .replace(/^var\s+rankData\s*=\s*/, '')
+            .replace(/;\s*$/, '')
+            .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
+          const data = JSON.parse(jsonStr);
+          const funds = (data.datas || []).map((d: string) => parseRankItem(d, labels[i]));
+          allFunds.push(...funds);
+        }
+
+        // 全类型合并后排序
+        allFunds.sort((a, b) => {
+          const diff = b.yearlyReturn - a.yearlyReturn;
+          return sortDir === 'desc' ? diff : -diff;
+        });
+
+        setRankCache(cacheKey, allFunds);
       }
-
-      // 全类型合并后排序
-      allFunds.sort((a, b) => {
-        const diff = b.yearlyReturn - a.yearlyReturn;
-        return sortDir === 'desc' ? diff : -diff;
-      });
 
       const total = allFunds.length;
       const start = (page - 1) * pageSize;
