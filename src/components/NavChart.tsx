@@ -38,14 +38,19 @@ export default function NavChart({ data }: Props) {
   }, [data, range]);
 
   const { minVal, maxVal, padding } = useMemo(() => {
-    if (filtered.length === 0) return { minVal: 0, maxVal: 0, padding: 0 };
+    if (filtered.length === 0) return { minVal: 0, maxVal: 1, padding: 0.1 };
     let min = Infinity;
     let max = -Infinity;
     for (const d of filtered) {
       if (d.value < min) min = d.value;
       if (d.value > max) max = d.value;
     }
-    const pad = (max - min) * 0.1;
+    // 确保min和max有足够的差异
+    if (max - min < 0.01) {
+      min = min - 0.01;
+      max = max + 0.01;
+    }
+    const pad = Math.max((max - min) * 0.1, 0.01);
     return { minVal: min, maxVal: max, padding: pad };
   }, [filtered]);
 
