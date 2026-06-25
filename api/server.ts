@@ -48,7 +48,7 @@ app.get('/api/funds/list', async (_req, res) => {
     const allFunds: any[] = [];
 
     for (let i = 0; i < types.length; i++) {
-      const url = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${types[i]}&rs=&gs=0&sc=1nzf&st=desc&sd=2024-01-01&ed=2025-12-31&qdii=&tabSubtype=,,,,,&pi=1&pn=6&dx=1`;
+      const url = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${types[i]}&rs=&gs=0&sc=1nzf&st=desc&sd=2024-01-01&ed=2025-12-31&qdii=&tabSubtype=,,,,,&pi=1&pn=50&dx=1`;
       const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
       // 格式: var rankData = {datas:[...],...};
       const jsonStr = text
@@ -67,7 +67,12 @@ app.get('/api/funds/list', async (_req, res) => {
           nav: parseFloat(parts[4]) || 0,
           accumulatedNav: parseFloat(parts[5]) || 0,
           dailyChange: parseFloat(parts[6]) || 0,
+          month1: parseFloat(parts[8]) || 0,
+          month3: parseFloat(parts[9]) || 0,
+          month6: parseFloat(parts[10]) || 0,
           yearlyReturn: parseFloat(parts[11]) || 0,
+          year2: parseFloat(parts[12]) || 0,
+          year3: parseFloat(parts[13]) || 0,
         };
       });
       allFunds.push(...funds);
