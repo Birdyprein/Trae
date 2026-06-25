@@ -1,19 +1,13 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
-import InkCanvas from './components/InkCanvas';
-import HomePage from './pages/HomePage';
-import AboutPage from './pages/AboutPage';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "@/pages/Home";
 
 export default function App() {
   return (
     <Router>
-      <InkCanvas />
-      <AnimatePresence mode="wait">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<AboutPage />} />
-        </Routes>
-      </AnimatePresence>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/other" element={<div className="text-center text-xl">Other Page - Coming Soon</div>} />
+      </Routes>
     </Router>
   );
 }
