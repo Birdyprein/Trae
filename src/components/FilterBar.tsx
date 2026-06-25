@@ -58,15 +58,15 @@ export default function FilterBar({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {/* Type Filter */}
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-500" />
+          <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500" />
           <select
             value={typeFilter}
             onChange={(e) => onTypeChange(e.target.value)}
-            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-surface-card border border-surface-border rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-gold-500/50"
           >
             {FUND_TYPES.map(type => (
               <option key={type.value} value={type.value}>
@@ -78,11 +78,11 @@ export default function FilterBar({
 
         {/* Performance Filter */}
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-gray-500" />
+          <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500" />
           <select
             value={perfFilter}
             onChange={(e) => handlePerfFilter(e.target.value)}
-            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-surface-card border border-surface-border rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-gold-500/50"
           >
             {PERFORMANCE_FILTERS.map(item => (
               <option key={item.value} value={item.value}>
@@ -96,13 +96,13 @@ export default function FilterBar({
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={clsx(
-            'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors',
+            'flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border text-xs sm:text-sm transition-colors',
             showFilters
-              ? 'bg-blue-50 border-blue-200 text-blue-600'
-              : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+              ? 'bg-gold-500/10 border-gold-500/30 text-gold-400'
+              : 'bg-surface-card border-surface-border text-gray-300 hover:bg-surface-hover'
           )}
         >
-          <Calendar className="w-4 h-4" />
+          <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           更多筛选
         </button>
 

@@ -17,25 +17,25 @@ export default function Pagination({ current, total, pageSize, onChange }: Props
   for (let i = start; i <= end; i++) pages.push(i);
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-8">
+    <div className="flex items-center justify-center gap-1 sm:gap-2 mt-6 sm:mt-8">
       <button
         onClick={() => onChange(current - 1)}
         disabled={current === 1}
-        className="p-2 rounded-lg text-muted hover:text-white hover:bg-surface-card disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="p-1.5 sm:p-2 rounded-lg text-muted hover:text-white hover:bg-surface-card disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       >
-        <ChevronLeft className="w-5 h-5" />
+        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
       </button>
       {start > 1 && (
         <>
-          <button onClick={() => onChange(1)} className="w-9 h-9 rounded-lg text-sm text-muted hover:text-white hover:bg-surface-card transition-colors">1</button>
-          {start > 2 && <span className="text-muted">...</span>}
+          <button onClick={() => onChange(1)} className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg text-xs sm:text-sm text-muted hover:text-white hover:bg-surface-card transition-colors">1</button>
+          {start > 2 && <span className="text-muted text-xs sm:text-sm">...</span>}
         </>
       )}
       {pages.map((p) => (
         <button
           key={p}
           onClick={() => onChange(p)}
-          className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${
+          className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg text-xs sm:text-sm font-medium transition-all ${
             p === current
               ? 'bg-gold-500 text-surface'
               : 'text-muted hover:text-white hover:bg-surface-card'
@@ -46,16 +46,16 @@ export default function Pagination({ current, total, pageSize, onChange }: Props
       ))}
       {end < totalPages && (
         <>
-          {end < totalPages - 1 && <span className="text-muted">...</span>}
-          <button onClick={() => onChange(totalPages)} className="w-9 h-9 rounded-lg text-sm text-muted hover:text-white hover:bg-surface-card transition-colors">{totalPages}</button>
+          {end < totalPages - 1 && <span className="text-muted text-xs sm:text-sm">...</span>}
+          <button onClick={() => onChange(totalPages)} className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg text-xs sm:text-sm text-muted hover:text-white hover:bg-surface-card transition-colors">{totalPages}</button>
         </>
       )}
       <button
         onClick={() => onChange(current + 1)}
         disabled={current === totalPages}
-        className="p-2 rounded-lg text-muted hover:text-white hover:bg-surface-card disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="p-1.5 sm:p-2 rounded-lg text-muted hover:text-white hover:bg-surface-card disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       >
-        <ChevronRight className="w-5 h-5" />
+        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
       </button>
     </div>
   );

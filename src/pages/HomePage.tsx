@@ -61,10 +61,10 @@ function StatItem({ label, value, suffix }: { label: string; value: number; suff
   const { val, ref } = useCountUp(value);
   return (
     <div className="text-center">
-      <span ref={ref} className="text-3xl lg:text-4xl font-bold font-display text-white">
+      <span ref={ref} className="text-2xl sm:text-3xl lg:text-4xl font-bold font-display text-white">
         {val.toLocaleString()}{suffix}
       </span>
-      <p className="text-sm text-muted mt-2">{label}</p>
+      <p className="text-xs sm:text-sm text-muted mt-1 sm:mt-2">{label}</p>
     </div>
   );
 }
@@ -89,15 +89,15 @@ export default function HomePage() {
             backgroundSize: '60px 60px',
           }}
         />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h1 className="font-display text-4xl lg:text-6xl font-bold text-white mb-6 leading-tight animate-on-scroll">
+        <div className="relative section-container py-16 sm:py-20 lg:py-28 xl:py-32">
+          <div className="text-center max-w-2xl lg:max-w-3xl mx-auto mb-10 sm:mb-12 lg:mb-16">
+            <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-4 sm:mb-6 leading-tight animate-on-scroll">
               智慧投资，<span className="text-gradient">稳健未来</span>
             </h1>
-            <p className="text-lg text-gray-400 mb-8 animate-on-scroll stagger-1">
+            <p className="text-base sm:text-lg text-gray-400 mb-6 sm:mb-8 animate-on-scroll stagger-1">
               汇聚优质基金产品，以专业数据驱动投资决策，让每一份资产都焕发价值
             </p>
-            <div className="flex items-center justify-center gap-4 animate-on-scroll stagger-2">
+            <div className="flex items-center justify-center gap-3 sm:gap-4 animate-on-scroll stagger-2 flex-wrap">
               <Link to="/funds" className="btn-primary inline-flex items-center gap-2">
                 浏览基金 <ArrowRight className="w-4 h-4" />
               </Link>
@@ -107,7 +107,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto animate-on-scroll stagger-3">
+          <div className="grid grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-xl sm:max-w-2xl mx-auto animate-on-scroll stagger-3">
             <StatItem label="基金总数" value={totalFunds} suffix="+" />
             <StatItem label="累计规模" value={3860} suffix="亿" />
             <StatItem label="年化收益TOP1" value={Math.round(featuredFunds[0]?.yearlyReturn || 25)} suffix="%" />
@@ -116,14 +116,14 @@ export default function HomePage() {
       </section>
 
       {/* Market Overview */}
-      <section id="overview" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="flex items-center gap-3 mb-8">
-          <BarChart3 className="w-6 h-6 text-gold-400" />
-          <h2 className="font-display text-2xl font-bold text-white">市场概览</h2>
+      <section id="overview" className="section-container section-padding">
+        <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
+          <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-gold-400" />
+          <h2 className="font-display text-xl sm:text-2xl font-bold text-white">市场概览</h2>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
           <div className="lg:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               {marketIndices.map((index, i) => (
                 <MarketIndexCard key={index.code} data={index} index={i} />
               ))}
@@ -136,14 +136,14 @@ export default function HomePage() {
       </section>
 
       {/* Market Trend */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <TrendingUp className="w-6 h-6 text-gold-400" />
-          <h2 className="font-display text-2xl font-bold text-white">市场趋势</h2>
+      <section className="section-container py-6 sm:py-8">
+        <div className="flex items-center gap-2 sm:gap-3 mb-5 sm:mb-8">
+          <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-gold-400" />
+          <h2 className="font-display text-xl sm:text-2xl font-bold text-white">市场趋势</h2>
         </div>
-        <div className="glass-card p-6">
-          <p className="text-sm text-muted mb-4">上证指数 · 近30日走势</p>
-          <ResponsiveContainer width="100%" height={280}>
+        <div className="glass-card p-4 sm:p-6">
+          <p className="text-xs sm:text-sm text-muted mb-3 sm:mb-4">上证指数 · 近30日走势</p>
+          <ResponsiveContainer width="100%" height={220}>
             <LineChart data={marketTrendData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
               <XAxis
@@ -158,7 +158,7 @@ export default function HomePage() {
                 tick={{ fill: '#64748B', fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
-                width={60}
+                width={50}
               />
               <Tooltip
                 contentStyle={{
@@ -183,20 +183,20 @@ export default function HomePage() {
       </section>
 
       {/* Featured Funds */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <Shield className="w-6 h-6 text-gold-400" />
-            <h2 className="font-display text-2xl font-bold text-white">精选基金</h2>
+      <section className="section-container section-padding">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-gold-400" />
+            <h2 className="font-display text-xl sm:text-2xl font-bold text-white">精选基金</h2>
           </div>
           <Link
             to="/funds"
-            className="text-sm text-gold-400 hover:text-gold-300 transition-colors flex items-center gap-1"
+            className="text-xs sm:text-sm text-gold-400 hover:text-gold-300 transition-colors flex items-center gap-1"
           >
-            查看全部 <ArrowRight className="w-4 h-4" />
+            查看全部 <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {featuredFunds.map((fund, i) => (
             <FundCard key={fund.id} fund={fund} index={i} />
           ))}

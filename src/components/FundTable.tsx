@@ -32,17 +32,17 @@ function WatchlistButton({ id }: { id: string }) {
 
 export default function FundTable({ funds }: Props) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-surface-border">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto rounded-lg sm:rounded-xl border border-surface-border">
+      <table className="w-full text-xs sm:text-sm min-w-[640px]">
         <thead>
           <tr className="bg-surface-card/50">
-            <th className="w-10 px-3 py-3.5 text-muted font-medium"></th>
-            <th className="text-left px-5 py-3.5 text-muted font-medium">基金名称</th>
-            <th className="text-left px-5 py-3.5 text-muted font-medium">代码</th>
-            <th className="text-left px-5 py-3.5 text-muted font-medium">类型</th>
-            <th className="text-right px-5 py-3.5 text-muted font-medium">单位净值</th>
-            <th className="text-right px-5 py-3.5 text-muted font-medium">日涨跌幅</th>
-            <th className="text-right px-5 py-3.5 text-muted font-medium">近一年收益</th>
+            <th className="w-8 sm:w-10 px-2 sm:px-3 py-2.5 sm:py-3.5 text-muted font-medium"></th>
+            <th className="text-left px-3 sm:px-5 py-2.5 sm:py-3.5 text-muted font-medium whitespace-nowrap">基金名称</th>
+            <th className="text-left px-3 sm:px-5 py-2.5 sm:py-3.5 text-muted font-medium whitespace-nowrap hidden sm:table-cell">代码</th>
+            <th className="text-left px-3 sm:px-5 py-2.5 sm:py-3.5 text-muted font-medium whitespace-nowrap hidden md:table-cell">类型</th>
+            <th className="text-right px-3 sm:px-5 py-2.5 sm:py-3.5 text-muted font-medium whitespace-nowrap">单位净值</th>
+            <th className="text-right px-3 sm:px-5 py-2.5 sm:py-3.5 text-muted font-medium whitespace-nowrap">日涨跌幅</th>
+            <th className="text-right px-3 sm:px-5 py-2.5 sm:py-3.5 text-muted font-medium whitespace-nowrap">近一年收益</th>
           </tr>
         </thead>
         <tbody>
@@ -53,25 +53,25 @@ export default function FundTable({ funds }: Props) {
                 i % 2 === 0 ? 'bg-surface-card/30' : ''
               }`}
             >
-              <td className="px-3 py-3.5">
+              <td className="px-2 sm:px-3 py-2.5 sm:py-3.5">
                 <WatchlistButton id={fund.id} />
               </td>
-              <td className="px-5 py-3.5">
+              <td className="px-3 sm:px-5 py-2.5 sm:py-3.5">
                 <Link to={`/funds/${fund.id}`} className="text-white hover:text-gold-400 transition-colors font-medium">
                   {fund.name}
                 </Link>
               </td>
-              <td className="px-5 py-3.5 text-muted">{fund.code}</td>
-              <td className="px-5 py-3.5">
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/20">
+              <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-muted hidden sm:table-cell">{fund.code}</td>
+              <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 hidden md:table-cell">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/20 whitespace-nowrap">
                   {fund.type}
                 </span>
               </td>
-              <td className="px-5 py-3.5 text-right text-white">{fund.nav.toFixed(4)}</td>
-              <td className={`px-5 py-3.5 text-right font-medium ${fund.dailyChange >= 0 ? 'text-gain' : 'text-loss'}`}>
+              <td className="px-3 sm:px-5 py-2.5 sm:py-3.5 text-right text-white whitespace-nowrap">{fund.nav.toFixed(4)}</td>
+              <td className={`px-3 sm:px-5 py-2.5 sm:py-3.5 text-right font-medium whitespace-nowrap ${fund.dailyChange >= 0 ? 'text-gain' : 'text-loss'}`}>
                 {fund.dailyChange >= 0 ? '+' : ''}{fund.dailyChange.toFixed(2)}%
               </td>
-              <td className={`px-5 py-3.5 text-right font-medium ${fund.yearlyReturn >= 0 ? 'text-gain' : 'text-loss'}`}>
+              <td className={`px-3 sm:px-5 py-2.5 sm:py-3.5 text-right font-medium whitespace-nowrap ${fund.yearlyReturn >= 0 ? 'text-gain' : 'text-loss'}`}>
                 {fund.yearlyReturn >= 0 ? '+' : ''}{fund.yearlyReturn.toFixed(2)}%
               </td>
             </tr>
