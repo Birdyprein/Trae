@@ -66,7 +66,7 @@ export async function fetchFundList(
     month6: f.month6,
     ytd: 0,
     totalReturn: 0,
-    riskLevel: 3 as const,
+    riskLevel: f.riskLevel || (Math.abs(f.yearlyReturn || 0) > 20 ? 4 : Math.abs(f.yearlyReturn || 0) > 10 ? 3 : 2) as 1|2|3|4|5,
     returns: {
       month1: f.month1 || 0,
       month3: f.month3 || 0,
@@ -74,10 +74,10 @@ export async function fetchFundList(
       year1: f.yearlyReturn || 0,
       year3: f.year3 || 0,
     },
-    riskMetrics: {
+    riskMetrics: f.riskMetrics || {
       maxDrawdown: 0, volatility: 0, sharpeRatio: 0, alpha: 0,
     },
-    navHistory: [],
+    navHistory: f.navHistory || [],
   }));
   return {
     funds,

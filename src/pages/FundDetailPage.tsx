@@ -1,10 +1,13 @@
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, User, TrendingUp, Layers, StarIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useFund } from '@/hooks/useFunds';
 import { useWatchlistStore } from '@/stores/watchlistStore';
+import { fetchFundNav } from '@/services/api';
 import NavChart from '@/components/NavChart';
 import PerformanceTable from '@/components/PerformanceTable';
 import RiskMetricsCards from '@/components/RiskMetricsCards';
+import type { NavPoint } from '@/types';
 
 const RISK_LABELS: Record<number, string> = {
   1: '低风险',
@@ -19,6 +22,30 @@ export default function FundDetailPage() {
   const fund = useFund(id!);
   const { toggle, has } = useWatchlistStore();
   const isWatched = id ? has(id) : false;
+  const [navHistory, setNavHistory] = useState<NavPoint[]>([]);
+  const [navLoading, setNavLoading] = useState(false);
+
+  // 进入页面时滚动到顶部
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  // 异步加载净值历史数据
+  useEffect(() => {
+    if (!fund) return;
+    const loadNav = async () => {
+      setNavLoading(true);
+      try {
+        const data = await fetchFundNav(fund.code, 365);
+        setNavHistory(data);
+      } catch {
+        // 如果API失败，使用已有的navHistory或空数组
+        setNavHistory(fund.navHistory || []);
+      }
+      setNavLoading(false);
+    };
+    loadNav();
+  }, [fund?.code]);
 
   if (!fund) {
     return (
@@ -104,7 +131,15 @@ export default function FundDetailPage() {
 
       {/* Chart */}
       <div className="mb-8 animate-on-scroll stagger-1">
-        <NavChart data={fund.navHistory} />
+        {navLoading ? (
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-center h-80">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold-400"></div>
+            </div>
+          </div>
+        ) : (
+          <NavChart data={navHistory.length > 0 ? navHistory : fund.navHistory} />
+        )}
       </div>
 
       {/* Performance & Risk */}

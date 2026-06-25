@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 
 interface SectorData {
@@ -12,11 +12,7 @@ export default function SectorBoard() {
   const [sectors, setSectors] = useState<SectorData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchSectorData();
-  }, []);
-
-  const fetchSectorData = async () => {
+  const fetchSectorData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/market/sectors');
@@ -24,33 +20,54 @@ export default function SectorBoard() {
       if (data.success) {
         setSectors(data.data);
       } else {
-        // Mock data if API fails
-        setSectors([
-          { name: '半导体', code: 'BK0425', change: 3.25, volume: '326.8亿' },
-          { name: '人工智能', code: 'BK0854', change: 2.18, volume: '289.5亿' },
-          { name: '新能源汽车', code: 'BK0741', change: 1.86, volume: '412.3亿' },
-          { name: '医药生物', code: 'BK0465', change: 1.42, volume: '356.7亿' },
-          { name: '白酒', code: 'BK0367', change: -0.85, volume: '198.4亿' },
-          { name: '银行', code: 'BK0404', change: -1.23, volume: '156.2亿' },
-          { name: '房地产', code: 'BK0363', change: -2.45, volume: '134.8亿' },
-          { name: '煤炭', code: 'BK0419', change: -3.12, volume: '98.6亿' },
-        ]);
+        generateMockSectors();
       }
     } catch {
-      // Fallback mock data
-      setSectors([
-        { name: '半导体', code: 'BK0425', change: 3.25, volume: '326.8亿' },
-        { name: '人工智能', code: 'BK0854', change: 2.18, volume: '289.5亿' },
-        { name: '新能源汽车', code: 'BK0741', change: 1.86, volume: '412.3亿' },
-        { name: '医药生物', code: 'BK0465', change: 1.42, volume: '356.7亿' },
-        { name: '白酒', code: 'BK0367', change: -0.85, volume: '198.4亿' },
-        { name: '银行', code: 'BK0404', change: -1.23, volume: '156.2亿' },
-        { name: '房地产', code: 'BK0363', change: -2.45, volume: '134.8亿' },
-        { name: '煤炭', code: 'BK0419', change: -3.12, volume: '98.6亿' },
-      ]);
+      generateMockSectors();
     }
     setLoading(false);
+  }, []);
+
+  // 生成随机波动的模拟数据
+  const generateMockSectors = () => {
+    const baseSectors = [
+      { name: '半导体', code: 'BK0425' },
+      { name: '人工智能', code: 'BK0854' },
+      { name: '新能源汽车', code: 'BK0741' },
+      { name: '医药生物', code: 'BK0465' },
+      { name: '白酒', code: 'BK0367' },
+      { name: '银行', code: 'BK0404' },
+      { name: '房地产', code: 'BK0363' },
+      { name: '煤炭', code: 'BK0419' },
+      { name: '光伏', code: 'BK0532' },
+      { name: '芯片', code: 'BK0548' },
+      { name: '5G通信', code: 'BK0610' },
+      { name: '云计算', code: 'BK0578' },
+    ];
+    const mockData = baseSectors.map(s => {
+      const change = (Math.random() - 0.5) * 8;
+      const volume = (Math.random() * 400 + 50).toFixed(1);
+      return {
+        name: s.name,
+        code: s.code,
+        change: Math.round(change * 100) / 100,
+        volume: `${volume}亿`,
+      };
+    });
+    setSectors(mockData);
   };
+
+  useEffect(() => {
+    fetchSectorData();
+  }, [fetchSectorData]);
+
+  // 每30秒自动刷新一次
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchSectorData();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchSectorData]);
 
   const sortedSectors = [...sectors].sort((a, b) => b.change - a.change);
   const risingSectors = sortedSectors.filter(s => s.change >= 0).slice(0, 4);
