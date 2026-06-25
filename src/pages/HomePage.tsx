@@ -72,6 +72,7 @@ function StatItem({ label, value, suffix }: { label: string; value: number; suff
 export default function HomePage() {
   useRealDataLoader();
   const funds = useFundDataStore((s) => s.funds);
+  const totalFunds = useFundDataStore((s) => s.totalFunds);
   const marketIndices = useFundDataStore((s) => s.indices);
   const featuredFunds = funds.slice(0, 6);
 
@@ -107,9 +108,9 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto animate-on-scroll stagger-3">
-            <StatItem label="基金总数" value={funds.length} suffix="+" />
+            <StatItem label="基金总数" value={totalFunds} suffix="+" />
             <StatItem label="累计规模" value={3860} suffix="亿" />
-            <StatItem label="年化收益TOP1" value={25} suffix="%" />
+            <StatItem label="年化收益TOP1" value={Math.round(featuredFunds[0]?.yearlyReturn || 25)} suffix="%" />
           </div>
         </div>
       </section>

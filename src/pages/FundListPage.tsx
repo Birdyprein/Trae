@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Search, Calculator } from 'lucide-react';
-import { useFunds } from '@/hooks/useFunds';
+import { Search, Calculator, Loader2 } from 'lucide-react';
+import { useFundDataStore } from '@/stores/fundDataStore';
+import type { SortField } from '@/types';
 import SearchBar from '@/components/SearchBar';
 import FilterBar from '@/components/FilterBar';
 import FundTable from '@/components/FundTable';
@@ -8,33 +9,53 @@ import Pagination from '@/components/Pagination';
 import FundCompare from '@/components/FundCompare';
 import SIPCalculator from '@/components/SIPCalculator';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 50;
 
 export default function FundListPage() {
-  const { funds, search, setSearch, typeFilter, setTypeFilter, sortField, sortDir, setSort } = useFunds();
-  const [page, setPage] = useState(1);
+  const funds = useFundDataStore((s) => s.funds);
+  const totalFunds = useFundDataStore((s) => s.totalFunds);
+  const loading = useFundDataStore((s) => s.loading);
+  const currentPage = useFundDataStore((s) => s.currentPage);
+  const currentType = useFundDataStore((s) => s.currentType);
+  const loadFundPage = useFundDataStore((s) => s.loadFundPage);
+
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [sortField, setSortField] = useState<SortField>('yearlyReturn');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [showCompare, setShowCompare] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
 
   useEffect(() => {
-    setPage(1);
-  }, [search, typeFilter, sortField, sortDir]);
+    const type = typeFilter === '' ? 'all' : typeFilter;
+    loadFundPage(1, type);
+  }, [typeFilter, loadFundPage]);
 
-  const totalPages = Math.ceil(funds.length / PAGE_SIZE);
-  const currentPage = Math.min(page, Math.max(totalPages, 1));
-  const paged = funds.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const handlePageChange = (page: number) => {
+    const type = typeFilter === '' ? 'all' : typeFilter;
+    loadFundPage(page, type);
+  };
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
   };
 
-  const handleTypeChange = (type: typeof typeFilter) => {
+  const handleTypeChange = (type: string) => {
     setTypeFilter(type);
   };
 
-  const handleSortChange = (field: typeof sortField, dir: typeof sortDir) => {
-    setSort(field, dir);
+  const handleSortChange = (field: SortField, dir: 'asc' | 'desc') => {
+    setSortField(field);
+    setSortDir(dir);
   };
+
+  const displayFunds = search
+    ? funds.filter(
+        (f) =>
+          f.name.toLowerCase().includes(search.toLowerCase()) ||
+          f.code.includes(search)
+      )
+    : funds;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -59,7 +80,7 @@ export default function FundListPage() {
       <div className="space-y-5 mb-8 animate-on-scroll stagger-1">
         <SearchBar value={search} onChange={handleSearchChange} />
         <FilterBar
-          typeFilter={typeFilter}
+          typeFilter={typeFilter as any}
           onTypeChange={handleTypeChange}
           sortField={sortField}
           sortDir={sortDir}
@@ -69,12 +90,13 @@ export default function FundListPage() {
       </div>
 
       {/* Fund Count */}
-      <div className="mb-4 text-sm text-gray-500">
-        共找到 <span className="font-semibold text-blue-600">{funds.length}</span> 只基金
+      <div className="mb-4 text-sm text-gray-500 flex items-center gap-2">
+        共找到 <span className="font-semibold text-blue-600">{totalFunds.toLocaleString()}</span> 只基金
+        {loading && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
       </div>
 
       {/* Fund Table */}
-      {funds.length === 0 ? (
+      {funds.length === 0 && !loading ? (
         <div className="text-center py-20 animate-on-scroll">
           <Search className="w-12 h-12 text-muted mx-auto mb-4" />
           <p className="text-muted text-lg">未找到匹配的基金</p>
@@ -82,14 +104,19 @@ export default function FundListPage() {
         </div>
       ) : (
         <>
-          <div className="animate-on-scroll stagger-2">
-            <FundTable funds={paged} />
+          <div className="animate-on-scroll stagger-2 relative">
+            {loading && (
+              <div className="absolute inset-0 bg-surface/50 flex items-center justify-center z-10 rounded-xl">
+                <Loader2 className="w-8 h-8 animate-spin text-gold-400" />
+              </div>
+            )}
+            <FundTable funds={displayFunds} />
           </div>
           <Pagination
             current={currentPage}
-            total={funds.length}
-            pageSize={PAGE_SIZE}
-            onChange={setPage}
+            total={search ? displayFunds.length : totalFunds}
+            pageSize={search ? displayFunds.length : PAGE_SIZE}
+            onChange={handlePageChange}
           />
         </>
       )}

@@ -10,16 +10,44 @@ async function fetchJSON<T>(url: string): Promise<T> {
   return json.data as T;
 }
 
+async function fetchFullResponse<T>(url: string): Promise<{ data: T; total?: number; page?: number; pageSize?: number }> {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const json = await resp.json();
+  if (!json.success) throw new Error(json.error || 'API error');
+  return json;
+}
+
 // ============ 基金搜索 ============
 export async function searchFunds(keyword: string): Promise<{ code: string; name: string; type: string }[]> {
   return fetchJSON(`${BASE}/funds/search?keyword=${encodeURIComponent(keyword)}`);
 }
 
-// ============ 基金列表 ============
-export async function fetchFundList(): Promise<Fund[]> {
-  const raw = await fetchJSON<any[]>(`${BASE}/funds/list`);
-  return raw.map((f, i) => ({
-    id: String(i + 100),
+// ============ 基金列表（服务端分页） ============
+export interface FundListResponse {
+  funds: Fund[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function fetchFundList(
+  page = 1,
+  pageSize = 50,
+  type = 'all',
+  sort = '1nzf',
+  dir = 'desc'
+): Promise<FundListResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+    type,
+    sort,
+    dir,
+  });
+  const raw = await fetchFullResponse<any[]>(`${BASE}/funds/list?${params.toString()}`);
+  const funds = raw.data.map((f: any, i: number) => ({
+    id: `${f.code}-${i}`,
     code: f.code,
     name: f.name,
     type: f.type as Fund['type'],
@@ -51,6 +79,17 @@ export async function fetchFundList(): Promise<Fund[]> {
     },
     navHistory: [],
   }));
+  return {
+    funds,
+    total: raw.total,
+    page: raw.page,
+    pageSize: raw.pageSize,
+  };
+}
+
+// ============ 基金统计 ============
+export async function fetchFundStats(): Promise<{ total: number; byType: Record<string, number> }> {
+  return fetchJSON(`${BASE}/funds/stats`);
 }
 
 // ============ 基金详情 ============

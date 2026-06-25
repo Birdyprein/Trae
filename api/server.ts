@@ -19,6 +19,50 @@ async function httpGet(url: string, headers: Record<string, string> = {}): Promi
   return resp.text();
 }
 
+// 全部基金代码缓存
+let allFundsCache: Array<{ code: string; name: string; type: string; pinyin: string }> | null = null;
+let cacheTime = 0;
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6小时缓存
+
+async function getAllFunds(): Promise<typeof allFundsCache> {
+  const now = Date.now();
+  if (allFundsCache && now - cacheTime < CACHE_TTL) return allFundsCache;
+
+  const url = 'http://fund.eastmoney.com/js/fundcode_search.js';
+  const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
+  const jsonStr = text.replace(/^var\s+r\s*=\s*/, '').replace(/;\s*$/, '');
+  const arr = JSON.parse(jsonStr);
+  // 格式: [代码, 拼音首字母, 名称, 类型, 拼音全拼]
+  allFundsCache = arr.map((item: string[]) => ({
+    code: item[0],
+    name: item[2],
+    type: item[3].split('-')[0], // 取大类
+    pinyin: item[4],
+  }));
+  cacheTime = now;
+  return allFundsCache;
+}
+
+// 类型映射
+const TYPE_MAP: Record<string, string> = {
+  '股票型': 'gp',
+  '混合型': 'hh',
+  '债券型': 'zq',
+  '指数型': 'zs',
+  '货币型': 'hb',
+  'QDII': 'qdii',
+  'FOF': 'fof',
+};
+const TYPE_LABELS: Record<string, string> = {
+  gp: '股票型',
+  hh: '混合型',
+  zq: '债券型',
+  zs: '指数型',
+  hb: '货币型',
+  qdii: 'QDII',
+  fof: 'FOF',
+};
+
 // ============ 基金搜索 ============
 // 数据来源: 天天基金 (东方财富)
 app.get('/api/funds/search', async (req, res) => {
@@ -39,46 +83,130 @@ app.get('/api/funds/search', async (req, res) => {
   }
 });
 
-// ============ 基金列表 ============
+// ============ 基金列表（服务端分页） ============
 // 数据来源: 天天基金排行
-app.get('/api/funds/list', async (_req, res) => {
+app.get('/api/funds/list', async (req, res) => {
   try {
-    const types = ['gp', 'hh', 'zq', 'zs'];
-    const labels = ['股票型', '混合型', '债券型', '指数型'];
-    const allFunds: any[] = [];
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.pageSize as string) || 50;
+    const type = (req.query.type as string) || 'all';
+    const sortField = (req.query.sort as string) || '1nzf';
+    const sortDir = (req.query.dir as string) || 'desc';
 
-    for (let i = 0; i < types.length; i++) {
-      const url = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${types[i]}&rs=&gs=0&sc=1nzf&st=desc&sd=2024-01-01&ed=2025-12-31&qdii=&tabSubtype=,,,,,&pi=1&pn=50&dx=1`;
+    const st = sortDir === 'desc' ? 'desc' : 'asc';
+
+    if (type === 'all') {
+      // 全类型：从多个类型中获取并合并
+      const types = ['gp', 'hh', 'zq', 'zs'];
+      const labels = ['股票型', '混合型', '债券型', '指数型'];
+      const allFunds: any[] = [];
+      const perTypeCount = 500;
+
+      for (let i = 0; i < types.length; i++) {
+        const url = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${types[i]}&rs=&gs=0&sc=${sortField}&st=${st}&sd=2024-01-01&ed=2025-12-31&qdii=&tabSubtype=,,,,,&pi=1&pn=${perTypeCount}&dx=1`;
+        const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
+        const jsonStr = text
+          .replace(/^var\s+rankData\s*=\s*/, '')
+          .replace(/;\s*$/, '')
+          .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
+        const data = JSON.parse(jsonStr);
+        const funds = (data.datas || []).map((d: string) => parseRankItem(d, labels[i]));
+        allFunds.push(...funds);
+      }
+
+      // 全类型合并后排序
+      allFunds.sort((a, b) => {
+        const diff = b.yearlyReturn - a.yearlyReturn;
+        return sortDir === 'desc' ? diff : -diff;
+      });
+
+      const total = allFunds.length;
+      const start = (page - 1) * pageSize;
+      const paged = allFunds.slice(start, start + pageSize);
+
+      res.json({ success: true, data: paged, total, page, pageSize });
+    } else {
+      // 单类型
+      const typeCode = TYPE_MAP[type] || type;
+      const label = TYPE_LABELS[typeCode] || type;
+      const url = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${typeCode}&rs=&gs=0&sc=${sortField}&st=${st}&sd=2024-01-01&ed=2025-12-31&qdii=&tabSubtype=,,,,,&pi=${page}&pn=${pageSize}&dx=1`;
       const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
-      // 格式: var rankData = {datas:[...],...};
       const jsonStr = text
         .replace(/^var\s+rankData\s*=\s*/, '')
         .replace(/;\s*$/, '')
-        // 给 JS 对象字面量的键加引号，转为合法 JSON
         .replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
       const data = JSON.parse(jsonStr);
-      const funds = (data.datas || []).map((d: string) => {
-        const parts = d.split(',');
-        return {
-          code: parts[0],
-          name: parts[1],
-          type: labels[i],
-          // rankhandler 格式: 0=代码,1=名称,2=拼音,3=日期,4=净值,5=累计净值,6=日涨跌,7=?,8=近1月,9=近3月,10=近6月,11=近1年,12=近2年,13=近3年
-          nav: parseFloat(parts[4]) || 0,
-          accumulatedNav: parseFloat(parts[5]) || 0,
-          dailyChange: parseFloat(parts[6]) || 0,
-          month1: parseFloat(parts[8]) || 0,
-          month3: parseFloat(parts[9]) || 0,
-          month6: parseFloat(parts[10]) || 0,
-          yearlyReturn: parseFloat(parts[11]) || 0,
-          year2: parseFloat(parts[12]) || 0,
-          year3: parseFloat(parts[13]) || 0,
-        };
-      });
-      allFunds.push(...funds);
+      const funds = (data.datas || []).map((d: string) => parseRankItem(d, label));
+      const total = parseInt(data.allNum) || funds.length;
+
+      res.json({ success: true, data: funds, total, page, pageSize });
+    }
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+function parseRankItem(d: string, typeLabel: string) {
+  const parts = d.split(',');
+  return {
+    code: parts[0],
+    name: parts[1],
+    type: typeLabel,
+    nav: parseFloat(parts[4]) || 0,
+    accumulatedNav: parseFloat(parts[5]) || 0,
+    dailyChange: parseFloat(parts[6]) || 0,
+    month1: parseFloat(parts[8]) || 0,
+    month3: parseFloat(parts[9]) || 0,
+    month6: parseFloat(parts[10]) || 0,
+    yearlyReturn: parseFloat(parts[11]) || 0,
+    year2: parseFloat(parts[12]) || 0,
+    year3: parseFloat(parts[13]) || 0,
+  };
+}
+
+// ============ 全部基金统计 ============
+app.get('/api/funds/stats', async (_req, res) => {
+  try {
+    const allFunds = await getAllFunds();
+    const typeCount: Record<string, number> = {};
+    for (const f of allFunds || []) {
+      typeCount[f.type] = (typeCount[f.type] || 0) + 1;
+    }
+    res.json({
+      success: true,
+      data: {
+        total: allFunds?.length || 0,
+        byType: typeCount,
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============ 全部基金搜索（模糊搜索） ============
+app.get('/api/funds/search-all', async (req, res) => {
+  try {
+    const keyword = ((req.query.keyword as string) || '').toLowerCase();
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.pageSize as string) || 20;
+    const allFunds = await getAllFunds();
+
+    let filtered = allFunds || [];
+    if (keyword) {
+      filtered = filtered.filter(
+        (f) =>
+          f.name.toLowerCase().includes(keyword) ||
+          f.code.includes(keyword) ||
+          f.pinyin.toLowerCase().includes(keyword)
+      );
     }
 
-    res.json({ success: true, data: allFunds });
+    const total = filtered.length;
+    const start = (page - 1) * pageSize;
+    const paged = filtered.slice(start, start + pageSize);
+
+    res.json({ success: true, data: paged, total, page, pageSize });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

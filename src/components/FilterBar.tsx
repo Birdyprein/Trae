@@ -14,13 +14,13 @@ interface FilterBarProps {
 
 const FUND_TYPES = [
   { value: '', label: '全部类型' },
-  { value: '股票型', label: '股票型' },
-  { value: '混合型', label: '混合型' },
-  { value: '债券型', label: '债券型' },
-  { value: '指数型', label: '指数型' },
-  { value: '货币型', label: '货币型' },
-  { value: 'QDII', label: 'QDII' },
-  { value: 'FOF', label: 'FOF' },
+  { value: 'gp', label: '股票型' },
+  { value: 'hh', label: '混合型' },
+  { value: 'zq', label: '债券型' },
+  { value: 'zs', label: '指数型' },
+  { value: 'hb', label: '货币型' },
+  { value: 'qdii', label: 'QDII' },
+  { value: 'fof', label: 'FOF' },
 ];
 
 const PERFORMANCE_FILTERS = [
