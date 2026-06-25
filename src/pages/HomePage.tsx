@@ -9,6 +9,7 @@ import { useFundDataStore } from '@/stores/fundDataStore';
 import { useRealDataLoader } from '@/hooks/useFunds';
 import MarketIndexCard from '@/components/MarketIndexCard';
 import FundCard from '@/components/FundCard';
+import SectorBoard from '@/components/SectorBoard';
 
 const RISK_LABELS: Record<number, string> = {
   1: '低风险',
@@ -119,10 +120,17 @@ export default function HomePage() {
           <BarChart3 className="w-6 h-6 text-gold-400" />
           <h2 className="font-display text-2xl font-bold text-white">市场概览</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {marketIndices.map((index, i) => (
-            <MarketIndexCard key={index.code} data={index} index={i} />
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {marketIndices.map((index, i) => (
+                <MarketIndexCard key={index.code} data={index} index={i} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <SectorBoard />
+          </div>
         </div>
       </section>
 

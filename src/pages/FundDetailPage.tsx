@@ -78,7 +78,7 @@ export default function FundDetailPage() {
               </span>
               <span className="flex items-center gap-1">
                 <Layers className="w-3.5 h-3.5" />
-                规模: {fund.scale.toFixed(2)}亿
+                规模: {fund.scale}
               </span>
             </div>
           </div>
