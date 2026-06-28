@@ -46,7 +46,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8 }}
           className="text-center"
         >
           <motion.p
@@ -71,37 +71,26 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
           </motion.h1>
         </motion.div>
 
-        {/* 装饰性液态玻璃圆 */}
         <motion.div
           className="absolute top-1/3 left-1/4 w-48 h-48 rounded-full bg-gradient-to-br from-white/10 to-transparent backdrop-blur-xl"
-          animate={{
-            scale: [1, 1.1, 1],
-            x: [0, 10, 0],
-            y: [0, -10, 0],
-          }}
+          animate={{ scale: [1, 1.1, 1], x: [0, 10, 0], y: [0, -10, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
           style={{ filter: 'blur(20px)' }}
         />
         <motion.div
           className="absolute bottom-1/3 right-1/4 w-40 h-40 rounded-full bg-gradient-to-br from-purple-500/15 to-transparent backdrop-blur-xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            x: [0, -15, 0],
-            y: [0, 15, 0],
-          }}
+          animate={{ scale: [1, 1.2, 1], x: [0, -15, 0], y: [0, 15, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
           style={{ filter: 'blur(25px)' }}
         />
       </div>
 
-      {/* 解锁按钮区域 */}
       <motion.div
         className="relative z-10 px-8 pb-12"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.6 }}
       >
-        {/* 快捷操作按钮 */}
         <div className="flex justify-center gap-6 mb-8">
           <motion.div
             className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center cursor-pointer"
@@ -133,7 +122,6 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
           </motion.div>
         </div>
 
-        {/* 主解锁按钮 */}
         <motion.button
           className="w-full py-4 rounded-3xl bg-white/15 backdrop-blur-2xl border border-white/20 text-white text-lg font-medium shadow-2xl overflow-hidden relative"
           onClick={handleUnlock}
@@ -143,15 +131,8 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
         >
           <motion.div
             className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-            animate={{
-              x: ['-100%', '100%'],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              repeatDelay: 3,
-              ease: 'easeInOut',
-            }}
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
             style={{ width: '50%' }}
           />
           <span className="relative z-10 flex items-center justify-center gap-3">
@@ -175,17 +156,11 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
           </span>
         </motion.button>
 
-        {/* 解锁提示 */}
-        <motion.p
-          className="text-white/40 text-xs text-center mt-4"
-          animate={{ opacity: [0.4, 0.7, 0.4] }}
-          transition={{ duration: 3, repeat: Infinity }}
-        >
+        <p className="text-white/40 text-xs text-center mt-4">
           点击上方按钮或使用 Face ID 解锁
-        </motion.p>
+        </p>
       </motion.div>
 
-      {/* 解锁动画 */}
       <AnimatePresence>
         {isUnlocking && (
           <motion.div
