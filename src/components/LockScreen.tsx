@@ -15,13 +15,8 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
     return () => clearInterval(timer);
   }, []);
 
-  const formatTime = () => {
-    const hours = time.getHours();
-    const minutes = time.getMinutes().toString().padStart(2, '0');
-    return { hours, minutes };
-  };
-
-  const { hours, minutes } = formatTime();
+  const hours = time.getHours();
+  const minutes = time.getMinutes().toString().padStart(2, '0');
 
   const formatDate = () => {
     const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -40,8 +35,31 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
 
   return (
     <div className="w-full h-full relative flex flex-col overflow-hidden">
+      {/* 装饰性液态玻璃圆 - 放在内容后面 */}
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
+          className="absolute top-1/4 left-0 w-64 h-64 rounded-full bg-purple-500/20"
+          animate={{ scale: [1, 1.2, 1], x: [0, 30, 0], y: [0, -20, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ filter: 'blur(50px)' }}
+        />
+        <motion.div
+          className="absolute bottom-1/4 right-0 w-56 h-56 rounded-full bg-blue-500/20"
+          animate={{ scale: [1, 1.3, 1], x: [0, -20, 0], y: [0, 30, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ filter: 'blur(50px)' }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-pink-500/10"
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ filter: 'blur(60px)' }}
+        />
+      </div>
+
       <StatusBar />
 
+      {/* 内容层 - z-10 确保在光球前面 */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -50,105 +68,72 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
           className="text-center"
         >
           <motion.p
-            className="text-white/70 text-lg mb-3 font-light tracking-wide"
+            className="text-white/80 text-lg mb-2 font-light"
             key={formatDate()}
           >
             {formatDate()}
           </motion.p>
           <motion.h1
-            className="text-[88px] font-extralight tracking-tight text-white drop-shadow-2xl"
-            style={{ textShadow: '0 4px 40px rgba(0,0,0,0.3)' }}
+            className="text-[96px] font-thin text-white leading-none"
+            style={{ textShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
           >
             {hours}
-            <motion.span
-              key={minutes}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-[72px] text-white/90"
-            >
-              :{minutes}
-            </motion.span>
+            <span className="text-[72px] text-white/90">:{minutes}</span>
           </motion.h1>
         </motion.div>
-
-        <motion.div
-          className="absolute top-1/3 left-1/4 w-48 h-48 rounded-full bg-gradient-to-br from-white/10 to-transparent backdrop-blur-xl"
-          animate={{ scale: [1, 1.1, 1], x: [0, 10, 0], y: [0, -10, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ filter: 'blur(20px)' }}
-        />
-        <motion.div
-          className="absolute bottom-1/3 right-1/4 w-40 h-40 rounded-full bg-gradient-to-br from-purple-500/15 to-transparent backdrop-blur-xl"
-          animate={{ scale: [1, 1.2, 1], x: [0, -15, 0], y: [0, 15, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ filter: 'blur(25px)' }}
-        />
       </div>
 
+      {/* 解锁按钮区域 */}
       <motion.div
         className="relative z-10 px-8 pb-12"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.6 }}
       >
-        <div className="flex justify-center gap-6 mb-8">
+        <div className="flex justify-center gap-8 mb-8">
           <motion.div
-            className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center cursor-pointer"
-            whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.15)' }}
-            whileTap={{ scale: 0.95 }}
+            className="w-12 h-12 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center cursor-pointer"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-              <path d="M12 15.2A3.2 3.2 0 1 0 12 8.8a3.2 3.2 0 0 0 0 6.4zm0 1.8A5 5 0 1 1 12 7a5 5 0 0 1 0 10z"/>
-              <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
-            </svg>
+            <span className="text-xl">🔦</span>
           </motion.div>
           <motion.div
-            className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center cursor-pointer"
-            whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.15)' }}
-            whileTap={{ scale: 0.95 }}
+            className="w-12 h-12 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center cursor-pointer"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-            </svg>
-          </motion.div>
-          <motion.div
-            className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center cursor-pointer"
-            whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.15)' }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-            </svg>
+            <span className="text-xl">📷</span>
           </motion.div>
         </div>
 
         <motion.button
-          className="w-full py-4 rounded-3xl bg-white/15 backdrop-blur-2xl border border-white/20 text-white text-lg font-medium shadow-2xl overflow-hidden relative"
+          className="w-full py-4 rounded-3xl bg-white/20 backdrop-blur-2xl border border-white/30 text-white text-base font-medium relative overflow-hidden"
           onClick={handleUnlock}
           disabled={isUnlocking}
-          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.2)' }}
+          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.25)' }}
           whileTap={{ scale: 0.98 }}
         >
           <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
             animate={{ x: ['-100%', '100%'] }}
-            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
-            style={{ width: '50%' }}
+            transition={{ duration: 3, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }}
+            style={{ width: '40%' }}
           />
-          <span className="relative z-10 flex items-center justify-center gap-3">
+          <span className="relative z-10 flex items-center justify-center gap-2">
             {isUnlocking ? (
               <>
                 <motion.div
-                  className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                  className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full"
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
                 />
                 解锁中...
               </>
             ) : (
               <>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM6 10h12v10H6V10zm6-5c1.66 0 3 1.34 3 3v2H9V8c0-1.66 1.34-3 3-3z"/>
                 </svg>
                 按下解锁
               </>
@@ -156,8 +141,8 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
           </span>
         </motion.button>
 
-        <p className="text-white/40 text-xs text-center mt-4">
-          点击上方按钮或使用 Face ID 解锁
+        <p className="text-white/50 text-xs text-center mt-3">
+          点击按钮解锁进入系统
         </p>
       </motion.div>
 
