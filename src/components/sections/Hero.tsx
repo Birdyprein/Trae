@@ -1,6 +1,47 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { personalInfo } from '../../data/portfolio';
+
+// 根据出生日期动态计算年龄和身份
+function getAgeAndStatus() {
+  const birthDate = new Date(2008, 1, 5); // 2008年2月5日
+  const now = new Date();
+  
+  // 计算年龄
+  let age = now.getFullYear() - birthDate.getFullYear();
+  const monthDiff = now.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  // 计算身份状态
+  // 2026年9月1日入学
+  const enrollmentDate = new Date(2026, 8, 1); // 2026年9月1日
+  const yearDiff = now.getFullYear() - enrollmentDate.getFullYear();
+  
+  let status = '准大学生';
+  
+  if (now >= enrollmentDate) {
+    // 计算当前是哪个学期
+    const month = now.getMonth() + 1; // 1-12
+    const semester = month >= 9 || month <= 1 ? 1 : 2; // 上学期9-1月，下学期2-6月
+    
+    // 判断年级
+    if (yearDiff === 0) {
+      status = semester === 1 ? '大一新生' : '大一';
+    } else if (yearDiff === 1) {
+      status = semester === 1 ? '大二' : '大二';
+    } else if (yearDiff === 2) {
+      status = semester === 1 ? '大三' : '大三';
+    } else if (yearDiff === 3) {
+      status = semester === 1 ? '大四' : '大四';
+    } else {
+      status = '已毕业';
+    }
+  }
+  
+  return { age, status };
+}
 
 // 粒子背景组件
 function ParticleBackground() {
@@ -119,6 +160,8 @@ function ParticleBackground() {
 }
 
 export default function Hero() {
+  const { age, status } = getAgeAndStatus();
+  
   return (
     <section
       id="hero"
@@ -177,7 +220,7 @@ export default function Hero() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-cyan"></span>
             </span>
             <span className="text-sm text-gray-400 font-body">
-              {personalInfo.status} · {personalInfo.age}岁
+              {status} · {age}岁
             </span>
           </motion.div>
 
