@@ -11,6 +11,11 @@ const certificates = [
     image: 'https://s41.ax1x.com/2026/07/01/pmdjoQJ.png',
     alt: '结课证书',
   },
+  {
+    id: 3,
+    image: 'https://s41.ax1x.com/2026/07/01/pmdjqdx.png',
+    alt: '证书',
+  },
 ];
 
 export default function CertificatesPage() {
@@ -32,7 +37,7 @@ export default function CertificatesPage() {
         </motion.div>
 
         {/* 证书网格 */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {certificates.map((cert, index) => (
             <motion.div
               key={cert.id}
