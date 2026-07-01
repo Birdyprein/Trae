@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 
-const categories = ['全部', '前端', '后端', '设计'];
 const placeholderCount = 3;
 
 export default function ProjectsPage() {
-  const [activeCategory, setActiveCategory] = useState('全部');
-
   return (
     <section className="py-20 md:py-32 min-h-screen">
       <div className="container px-4 md:px-8">
@@ -22,30 +19,6 @@ export default function ProjectsPage() {
           <p className="text-gray-400 font-body max-w-2xl mx-auto">
             我完成的一些项目作品
           </p>
-        </motion.div>
-
-        {/* 分类筛选 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex justify-center gap-4 mb-12"
-        >
-          {categories.map((cat) => (
-            <motion.button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-6 py-2 rounded-full font-body text-sm transition-all ${
-                activeCategory === cat
-                  ? 'bg-gradient-to-r from-accent-cyan to-accent-purple text-white'
-                  : 'glass text-gray-400 hover:text-white'
-              }`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {cat}
-            </motion.button>
-          ))}
         </motion.div>
 
         {/* 空白项目网格 */}
