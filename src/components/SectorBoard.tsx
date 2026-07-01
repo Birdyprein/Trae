@@ -74,15 +74,15 @@ export default function SectorBoard() {
   const fallingSectors = sortedSectors.filter(s => s.change < 0).slice(-4);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h3 className="font-semibold text-gray-800">热门板块</h3>
+    <div className="glass-card overflow-hidden">
+      <div className="px-5 py-4 border-b border-surface-border flex items-center justify-between">
+        <h3 className="font-semibold text-white">热门板块</h3>
         <button
           onClick={fetchSectorData}
-          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-1.5 hover:bg-surface-hover rounded-lg transition-colors"
           disabled={loading}
         >
-          <RefreshCw className={`w-4 h-4 text-gray-400 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 text-muted ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
@@ -90,7 +90,7 @@ export default function SectorBoard() {
         {loading ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+              <div key={i} className="h-16 bg-surface-hover rounded-xl animate-pulse" />
             ))}
           </div>
         ) : (
@@ -106,15 +106,15 @@ export default function SectorBoard() {
                   {risingSectors.map(sector => (
                     <div
                       key={sector.code}
-                      className="p-3 bg-red-50 rounded-xl hover:bg-red-100 transition-colors cursor-pointer"
+                      className="p-3 bg-red-500/10 rounded-xl hover:bg-red-500/20 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-gray-800 text-sm">{sector.name}</span>
-                        <span className="text-red-500 font-semibold text-sm">
+                        <span className="font-medium text-white text-sm">{sector.name}</span>
+                        <span className="text-red-400 font-semibold text-sm">
                           +{sector.change.toFixed(2)}%
                         </span>
                       </div>
-                      <div className="text-xs text-gray-400">成交 {sector.volume}</div>
+                      <div className="text-xs text-muted">成交 {sector.volume}</div>
                     </div>
                   ))}
                 </div>
@@ -132,15 +132,15 @@ export default function SectorBoard() {
                   {fallingSectors.map(sector => (
                     <div
                       key={sector.code}
-                      className="p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-colors cursor-pointer"
+                      className="p-3 bg-green-500/10 rounded-xl hover:bg-green-500/20 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-gray-800 text-sm">{sector.name}</span>
-                        <span className="text-green-500 font-semibold text-sm">
+                        <span className="font-medium text-white text-sm">{sector.name}</span>
+                        <span className="text-green-400 font-semibold text-sm">
                           {sector.change.toFixed(2)}%
                         </span>
                       </div>
-                      <div className="text-xs text-gray-400">成交 {sector.volume}</div>
+                      <div className="text-xs text-muted">成交 {sector.volume}</div>
                     </div>
                   ))}
                 </div>

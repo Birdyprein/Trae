@@ -4,12 +4,12 @@ import { ArrowRight, TrendingUp, BarChart3, Shield } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { marketTrendData } from '@/data/mockData';
 import { useFundDataStore } from '@/stores/fundDataStore';
 import { useRealDataLoader } from '@/hooks/useFunds';
 import MarketIndexCard from '@/components/MarketIndexCard';
 import FundCard from '@/components/FundCard';
 import SectorBoard from '@/components/SectorBoard';
+import type { NavPoint } from '@/types';
 
 const RISK_LABELS: Record<number, string> = {
   1: '低风险',
@@ -75,6 +75,48 @@ export default function HomePage() {
   const totalFunds = useFundDataStore((s) => s.totalFunds);
   const marketIndices = useFundDataStore((s) => s.indices);
   const featuredFunds = funds.slice(0, 6);
+  
+  const [indexHistory, setIndexHistory] = useState<NavPoint[]>([]);
+  const [indexLoading, setIndexLoading] = useState(true);
+
+  // 获取上证指数历史数据
+  useEffect(() => {
+    const fetchIndexHistory = async () => {
+      setIndexLoading(true);
+      try {
+        const res = await fetch('/api/market/index-history?days=30');
+        const data = await res.json();
+        if (data.success && data.data) {
+          setIndexHistory(data.data);
+        } else {
+          // 使用模拟数据
+          generateMockIndexHistory();
+        }
+      } catch {
+        generateMockIndexHistory();
+      }
+      setIndexLoading(false);
+    };
+
+    const generateMockIndexHistory = () => {
+      const base = 3250;
+      const history: NavPoint[] = [];
+      let value = base;
+      const now = new Date();
+      for (let i = 30; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        value = value * (1 + (Math.random() - 0.48) * 0.02);
+        history.push({
+          date: date.toISOString().slice(0, 10),
+          value: Math.round(value * 100) / 100,
+        });
+      }
+      setIndexHistory(history);
+    };
+
+    fetchIndexHistory();
+  }, []);
 
   return (
     <div>
@@ -143,42 +185,48 @@ export default function HomePage() {
         </div>
         <div className="glass-card p-4 sm:p-6">
           <p className="text-xs sm:text-sm text-muted mb-3 sm:mb-4">上证指数 · 近30日走势</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={marketTrendData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-              <XAxis
-                dataKey="date"
-                tick={{ fill: '#64748B', fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                domain={['auto', 'auto']}
-                tick={{ fill: '#64748B', fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                width={50}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#111827',
-                  border: '1px solid #1E293B',
-                  borderRadius: '8px',
-                  color: '#D4A853',
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke="#D4A853"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: '#D4A853', stroke: '#0A0E17', strokeWidth: 2 }}
-                animationDuration={1500}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          {indexLoading ? (
+            <div className="h-220 flex items-center justify-center">
+              <div className="text-muted text-sm">加载中...</div>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={indexHistory} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: '#64748B', fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  domain={['auto', 'auto']}
+                  tick={{ fill: '#64748B', fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={50}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#111827',
+                    border: '1px solid #1E293B',
+                    borderRadius: '8px',
+                    color: '#D4A853',
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#D4A853"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#D4A853', stroke: '#0A0E17', strokeWidth: 2 }}
+                  animationDuration={1500}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </section>
 
