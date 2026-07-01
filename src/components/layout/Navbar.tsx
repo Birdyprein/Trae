@@ -7,6 +7,7 @@ const navItems = [
   { name: '关于我', path: '/about' },
   { name: '技能', path: '/skills' },
   { name: '作品', path: '/projects' },
+  { name: '证书', path: '/certificates' },
   { name: '联系', path: '/contact' },
 ];
 
