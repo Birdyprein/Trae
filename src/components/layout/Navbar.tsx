@@ -130,7 +130,7 @@ export default function Navbar() {
           >
             <div className="py-4 px-4 flex flex-col gap-4">
               {navItems.map((item) => (
-                <motion.a
+                <a
                   key={item.name}
                   href={item.href}
                   onClick={(e) => {
@@ -142,10 +142,9 @@ export default function Navbar() {
                       ? 'text-accent-cyan'
                       : 'text-gray-400'
                   }`}
-                  whileTap={{ scale: 0.95 }}
                 >
                   {item.name}
-                </motion.a>
+                </a>
               ))}
             </div>
           </motion.div>
