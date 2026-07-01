@@ -34,16 +34,6 @@ export default function CertificatesPage() {
                 className="w-full h-auto"
               />
             </div>
-
-            {/* 证书信息 */}
-            <div className="mt-6 text-center">
-              <h3 className="font-display text-xl font-semibold text-white mb-2">
-                药理学结课证书
-              </h3>
-              <p className="text-gray-400 font-body text-sm">
-                终身教育平台 · 2026年6月10日
-              </p>
-            </div>
           </motion.div>
         </div>
       </div>
