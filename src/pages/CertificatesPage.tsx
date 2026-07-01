@@ -1,5 +1,18 @@
 import { motion } from 'framer-motion';
 
+const certificates = [
+  {
+    id: 1,
+    image: 'https://s41.ax1x.com/2026/07/01/pmdj5z4.png',
+    alt: '药理学结课证书',
+  },
+  {
+    id: 2,
+    image: 'https://s41.ax1x.com/2026/07/01/pmdjoQJ.png',
+    alt: '结课证书',
+  },
+];
+
 export default function CertificatesPage() {
   return (
     <section className="py-20 md:py-32 min-h-screen">
@@ -18,23 +31,25 @@ export default function CertificatesPage() {
           </p>
         </motion.div>
 
-        {/* 证书展示 */}
-        <div className="max-w-3xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="glass rounded-2xl p-6 md:p-8 card-hover"
-          >
-            {/* 证书图片 */}
-            <div className="relative rounded-lg overflow-hidden shadow-2xl">
-              <img
-                src="https://s41.ax1x.com/2026/07/01/pmdj5z4.png"
-                alt="药理学结课证书"
-                className="w-full h-auto"
-              />
-            </div>
-          </motion.div>
+        {/* 证书网格 */}
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {certificates.map((cert, index) => (
+            <motion.div
+              key={cert.id}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 + index * 0.1 }}
+              className="glass rounded-2xl p-6 md:p-6 card-hover"
+            >
+              <div className="relative rounded-lg overflow-hidden shadow-2xl">
+                <img
+                  src={cert.image}
+                  alt={cert.alt}
+                  className="w-full h-auto"
+                />
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
