@@ -126,25 +126,21 @@ export default function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden glass mt-2 mx-4 rounded-xl overflow-hidden"
+            className="md:hidden glass mt-2 mx-4 rounded-xl overflow-hidden z-50"
           >
             <div className="py-4 px-4 flex flex-col gap-4">
               {navItems.map((item) => (
-                <a
+                <button
                   key={item.name}
-                  href={item.href}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollTo(item.href);
-                  }}
-                  className={`font-body text-sm ${
+                  onClick={() => scrollTo(item.href)}
+                  className={`font-body text-sm text-left w-full ${
                     activeSection === item.href.slice(1)
                       ? 'text-accent-cyan'
                       : 'text-gray-400'
                   }`}
                 >
                   {item.name}
-                </a>
+                </button>
               ))}
             </div>
           </motion.div>
