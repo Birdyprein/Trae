@@ -1,45 +1,33 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { Link, useLocation } from 'react-router-dom';
 
 const navItems = [
-  { name: '首页', href: '#hero' },
-  { name: '关于我', href: '#about' },
-  { name: '技能', href: '#skills' },
-  { name: '作品', href: '#projects' },
-  { name: '联系', href: '#contact' },
+  { name: '首页', path: '/' },
+  { name: '关于我', path: '/about' },
+  { name: '技能', path: '/skills' },
+  { name: '作品', path: '/projects' },
+  { name: '联系', path: '/contact' },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [activeSection, setActiveSection] = useState('hero');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
+    setScrolled(window.scrollY > 50);
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
-      
-      // 检测当前活跃区域
-      const sections = navItems.map(item => item.href.slice(1));
-      for (const section of sections.reverse()) {
-        const element = document.getElementById(section);
-        if (element && window.scrollY >= element.offsetTop - 100) {
-          setActiveSection(section);
-          break;
-        }
-      }
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollTo = (href: string) => {
-    const element = document.getElementById(href.slice(1));
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+  // 关闭移动菜单当路由改变
+  useEffect(() => {
     setMobileMenuOpen(false);
-  };
+  }, [location]);
 
   return (
     <motion.nav
@@ -52,46 +40,34 @@ export default function Navbar() {
     >
       <div className="container px-4 md:px-8 flex items-center justify-between">
         {/* Logo */}
-        <motion.a
-          href="#hero"
-          onClick={(e) => {
-            e.preventDefault();
-            scrollTo('#hero');
-          }}
+        <Link
+          to="/"
           className="font-display text-2xl font-bold text-gradient cursor-pointer"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
         >
           LLL
-        </motion.a>
+        </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
           {navItems.map((item) => (
-            <motion.a
+            <Link
               key={item.name}
-              href={item.href}
-              onClick={(e) => {
-                e.preventDefault();
-                scrollTo(item.href);
-              }}
+              to={item.path}
               className={`relative font-body text-sm cursor-pointer transition-colors ${
-                activeSection === item.href.slice(1)
+                location.pathname === item.path
                   ? 'text-accent-cyan'
                   : 'text-gray-400 hover:text-white'
               }`}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.95 }}
             >
               {item.name}
-              {activeSection === item.href.slice(1) && (
+              {location.pathname === item.path && (
                 <motion.div
                   layoutId="activeIndicator"
                   className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-accent-cyan to-accent-purple"
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               )}
-            </motion.a>
+            </Link>
           ))}
         </div>
 
@@ -120,22 +96,20 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div
-          className="md:hidden glass mt-2 mx-4 rounded-xl overflow-hidden z-[100] pointer-events-auto"
-        >
+        <div className="md:hidden glass mt-2 mx-4 rounded-xl overflow-hidden z-[100] pointer-events-auto">
           <div className="py-4 px-4 flex flex-col gap-4">
             {navItems.map((item) => (
-              <button
+              <Link
                 key={item.name}
-                onClick={() => scrollTo(item.href)}
-                className={`font-body text-sm text-left w-full py-2 ${
-                  activeSection === item.href.slice(1)
+                to={item.path}
+                className={`font-body text-sm py-2 ${
+                  location.pathname === item.path
                     ? 'text-accent-cyan'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
                 {item.name}
-              </button>
+              </Link>
             ))}
           </div>
         </div>
