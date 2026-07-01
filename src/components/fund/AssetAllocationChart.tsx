@@ -1,0 +1,178 @@
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import type { AssetAllocation, IndustryAllocationItem } from '@/types';
+import { formatPercent, safeNumber, safeString } from '@/utils/formatters';
+
+interface AssetAllocationChartProps {
+  allocation: AssetAllocation;
+  industryAllocation: IndustryAllocationItem[];
+}
+
+const ASSET_COLORS: Record<string, string> = {
+  stock: '#EF4444',
+  bond: '#3B82F6',
+  cash: '#22C55E',
+  other: '#8B5CF6',
+};
+
+const ASSET_LABELS: Record<string, string> = {
+  stock: '股票',
+  bond: '债券',
+  cash: '现金',
+  other: '其他',
+};
+
+const INDUSTRY_COLORS = [
+  '#D4A853', '#E5C068', '#EF4444', '#3B82F6', '#22C55E',
+  '#8B5CF6', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1',
+];
+
+interface TooltipPayloadItem {
+  name?: string;
+  value?: number;
+  payload?: { name?: string; value?: number; ratio?: number };
+}
+
+function IndustryTooltip({ active, payload }: {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const item = payload[0]?.payload;
+  return (
+    <div className="glass-data-card px-3 py-2 text-xs">
+      <div className="text-white mb-0.5">{safeString(item?.name)}</div>
+      <div className="text-gold-300 font-mono">{formatPercent(item?.ratio ?? item?.value)}</div>
+    </div>
+  );
+}
+
+export default function AssetAllocationChart({ allocation, industryAllocation }: AssetAllocationChartProps) {
+  const assetData = (['stock', 'bond', 'cash', 'other'] as const)
+    .map((key) => ({
+      name: ASSET_LABELS[key],
+      key,
+      value: safeNumber(allocation?.[key]),
+    }))
+    .filter((d) => d.value > 0);
+
+  const industryData = (industryAllocation ?? [])
+    .map((item) => ({
+      name: safeString(item.industry),
+      ratio: safeNumber(item.ratio),
+    }))
+    .sort((a, b) => b.ratio - a.ratio)
+    .slice(0, 10);
+
+  const totalAsset = assetData.reduce((sum, d) => sum + d.value, 0);
+
+  return (
+    <div className="glass-card p-4 sm:p-6">
+      <h3 className="text-base font-medium mb-4">资产配置</h3>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 资产配置饼图 */}
+        <div>
+          {assetData.length === 0 ? (
+            <div className="flex items-center justify-center h-[240px] text-muted text-sm">
+              暂无配置数据
+            </div>
+          ) : (
+            <div className="h-[240px] w-full relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={assetData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={2}
+                    isAnimationActive
+                  >
+                    {assetData.map((entry) => (
+                      <Cell key={entry.key} fill={ASSET_COLORS[entry.key]} stroke="rgba(0,0,0,0.2)" />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: 'rgba(20,20,35,0.9)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value: number) => [
+                      `${formatPercent(totalAsset > 0 ? (value / totalAsset) * 100 : 0)}`,
+                      '占比',
+                    ]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <div className="text-xs text-muted">总仓位</div>
+                <div className="text-lg font-display font-bold text-gold-300">
+                  {formatPercent(totalAsset)}
+                </div>
+              </div>
+            </div>
+          )}
+          {/* 图例 */}
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            {assetData.map((d) => (
+              <div key={d.key} className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-secondary">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-sm"
+                    style={{ background: ASSET_COLORS[d.key] }}
+                  />
+                  {d.name}
+                </span>
+                <span className="text-white font-mono">
+                  {formatPercent(totalAsset > 0 ? (d.value / totalAsset) * 100 : 0)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 行业分布条形图 */}
+        <div>
+          <div className="text-xs text-muted mb-2">行业分布（前10）</div>
+          {industryData.length === 0 ? (
+            <div className="flex items-center justify-center h-[240px] text-muted text-sm">
+              暂无行业数据
+            </div>
+          ) : (
+            <div className="h-[240px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={industryData}
+                  layout="vertical"
+                  margin={{ top: 0, right: 12, left: 0, bottom: 0 }}
+                >
+                  <XAxis type="number" stroke="rgba(255,255,255,0.3)" fontSize={10} tickFormatter={(v: number) => `${v}%`} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    stroke="rgba(255,255,255,0.5)"
+                    fontSize={11}
+                    width={70}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip content={<IndustryTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                  <Bar dataKey="ratio" radius={[0, 4, 4, 0]} isAnimationActive>
+                    {industryData.map((_, i) => (
+                      <Cell key={i} fill={INDUSTRY_COLORS[i % INDUSTRY_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
