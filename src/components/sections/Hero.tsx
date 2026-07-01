@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import Button from '../ui/Button';
 import { personalInfo } from '../../data/portfolio';
 
 // 粒子背景组件
@@ -204,48 +203,6 @@ export default function Hero() {
             <span className="text-accent-cyan">不断学习，不断成长</span>
           </motion.p>
 
-          {/* CTA 按钮 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="flex flex-wrap justify-center gap-4"
-          >
-            <Button href="#projects" variant="primary" size="lg">
-              查看作品
-            </Button>
-            <Button href="#contact" variant="secondary" size="lg">
-              联系我
-            </Button>
-          </motion.div>
-        </motion.div>
-
-        {/* 滚动提示 */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="flex flex-col items-center gap-2 text-gray-500"
-          >
-            <span className="text-sm font-body">向下滚动</span>
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 5v14M19 12l-7 7-7-7" />
-            </svg>
-          </motion.div>
         </motion.div>
       </div>
     </section>
