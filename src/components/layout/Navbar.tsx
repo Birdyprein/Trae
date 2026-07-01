@@ -119,33 +119,27 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="md:hidden glass mt-2 mx-4 rounded-xl overflow-hidden z-50"
-          >
-            <div className="py-4 px-4 flex flex-col gap-4">
-              {navItems.map((item) => (
-                <button
-                  key={item.name}
-                  onClick={() => scrollTo(item.href)}
-                  className={`font-body text-sm text-left w-full ${
-                    activeSection === item.href.slice(1)
-                      ? 'text-accent-cyan'
-                      : 'text-gray-400'
-                  }`}
-                >
-                  {item.name}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden glass mt-2 mx-4 rounded-xl overflow-hidden z-[100] pointer-events-auto"
+        >
+          <div className="py-4 px-4 flex flex-col gap-4">
+            {navItems.map((item) => (
+              <button
+                key={item.name}
+                onClick={() => scrollTo(item.href)}
+                className={`font-body text-sm text-left w-full py-2 ${
+                  activeSection === item.href.slice(1)
+                    ? 'text-accent-cyan'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </motion.nav>
   );
 }
