@@ -136,42 +136,7 @@ export default function AssetAllocationChart({ allocation, industryAllocation }:
           </div>
         </div>
 
-        {/* 行业分布条形图 */}
-        <div>
-          <div className="text-xs text-muted mb-2">行业分布（前10）</div>
-          {industryData.length === 0 ? (
-            <div className="flex items-center justify-center h-[240px] text-muted text-sm">
-              暂无行业数据
-            </div>
-          ) : (
-            <div className="h-[240px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={industryData}
-                  layout="vertical"
-                  margin={{ top: 0, right: 12, left: 0, bottom: 0 }}
-                >
-                  <XAxis type="number" stroke="rgba(255,255,255,0.3)" fontSize={10} tickFormatter={(v: number) => `${v}%`} />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    stroke="rgba(255,255,255,0.5)"
-                    fontSize={11}
-                    width={70}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip content={<IndustryTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                  <Bar dataKey="ratio" radius={[0, 4, 4, 0]} isAnimationActive>
-                    {industryData.map((_, i) => (
-                      <Cell key={i} fill={INDUSTRY_COLORS[i % INDUSTRY_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
+
       </div>
     </div>
   );

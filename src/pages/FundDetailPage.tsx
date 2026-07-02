@@ -290,18 +290,6 @@ export default function FundDetailPage() {
         industryAllocation={detail.industryAllocation}
       />
 
-      {/* 重仓股 */}
-      <section>
-        <h2 className="text-base sm:text-lg font-semibold text-white mb-4">前十大重仓股</h2>
-        <HoldingsTable holdings={detail.topHoldings} />
-      </section>
-
-      {/* 基金经理（组件自带 glass-card 与信息） */}
-      <section>
-        <h2 className="text-base sm:text-lg font-semibold text-white mb-4">基金经理</h2>
-        <ManagerCard manager={detail.managerDetail} />
-      </section>
-
       <SIPCalculator isOpen={sipOpen} onClose={() => setSipOpen(false)} />
     </div>
   );
