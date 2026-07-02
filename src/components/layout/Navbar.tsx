@@ -54,7 +54,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearch }) => {
 
   return (
     <header className="glass-nav fixed top-0 left-0 right-0 z-40">
-      <div className="section-container">
+      <div className="section-container bg-black">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-3">
           {/* Logo */}
           <Link
