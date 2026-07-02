@@ -89,10 +89,10 @@
 
 /* 玻璃态输入框 - 纯黑色背景白色文字 */
 .glass-input {
-  background: rgb(0, 0, 0);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgb(0, 0, 0) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 10px;
-  color: #FFFFFF;
+  color: #FFFFFF !important;
   transition: all 0.2s ease;
 }
 
@@ -126,12 +126,12 @@
 
 /* 复选框适配 - 纯黑背景 */
 .glass-input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
+  appearance: none !important;
+  -webkit-appearance: none !important;
   width: 18px;
   height: 18px;
-  background: rgb(0, 0, 0);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgb(0, 0, 0) !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -139,8 +139,8 @@
 }
 
 .glass-input[type="checkbox"]:checked {
-  background: rgb(0, 0, 0);
-  border-color: rgba(212, 168, 83, 0.7);
+  background: rgb(0, 0, 0) !important;
+  border-color: rgba(212, 168, 83, 0.7) !important;
 }
 
 .glass-input[type="checkbox"]:checked::after {
@@ -161,12 +161,12 @@
 
 /* 单选框适配 - 纯黑背景 */
 .glass-input[type="radio"] {
-  appearance: none;
-  -webkit-appearance: none;
+  appearance: none !important;
+  -webkit-appearance: none !important;
   width: 18px;
   height: 18px;
-  background: rgb(0, 0, 0);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgb(0, 0, 0) !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -174,8 +174,8 @@
 }
 
 .glass-input[type="radio"]:checked {
-  background: rgb(0, 0, 0);
-  border-color: rgba(212, 168, 83, 0.7);
+  background: rgb(0, 0, 0) !important;
+  border-color: rgba(212, 168, 83, 0.7) !important;
 }
 
 .glass-input[type="radio"]:checked::after {
