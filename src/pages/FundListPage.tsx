@@ -95,62 +95,82 @@ export default function FundListPage() {
       {/* 搜索栏（自带防抖） */}
       <SearchBar onSearch={setKeyword} placeholder="搜索基金代码或名称" />
 
-      {/* 基础筛选（组件内部使用 store） */}
-      <FundFilterBar />
+      {/* 两栏布局 */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+        {/* 左侧筛选栏 */}
+        <aside className="space-y-4">
+          <div className="card-light p-5 lg:sticky lg:top-20">
+            <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span>🔍</span>
+              基金筛选
+            </h3>
+            
+            {/* 基础筛选（组件内部使用 store） */}
+            <FundFilterBar />
 
-      {/* 高级筛选（组件内部使用 store，自带展开/折叠按钮在 FundFilterBar 中） */}
-      {showAdvanced && (
-        <div className="animate-slide-up">
-          <FundAdvancedFilter />
-        </div>
-      )}
+            {/* 高级筛选（组件内部使用 store，自带展开/折叠按钮在 FundFilterBar 中） */}
+            {showAdvanced && (
+              <div className="animate-slide-up mt-4">
+                <FundAdvancedFilter />
+              </div>
+            )}
+          </div>
+        </aside>
 
-      {/* 基金展示 */}
-      {loading ? (
-        <LoadingSpinner label="加载基金数据..." />
-      ) : error ? (
-        <div className="glass-card p-8">
-          <EmptyState
-            icon={<X className="w-12 h-12 text-gain/60" />}
-            message={error}
-          />
-          <div className="text-center -mt-4 pb-2">
-            <button
-              type="button"
-              onClick={() => loadFunds(page, keyword, basic)}
-              className="glass-button-gold inline-flex items-center px-4 py-2 text-xs"
-            >
-              重试
-            </button>
-          </div>
-        </div>
-      ) : funds.length === 0 ? (
-        <div className="glass-card p-8">
-          <EmptyState
-            icon={<X className="w-12 h-12 text-gold-400/60" />}
-            message="未找到匹配基金，请尝试调整筛选条件或更换关键词"
-          />
-        </div>
-      ) : (
-        <>
-          {/* 桌面：表格；移动：卡片网格 */}
-          <div className="hidden md:block">
-            <FundTable funds={funds} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
-            {funds.map((fund, idx) => (
-              <FundCard key={fund.id ?? fund.code} fund={fund} index={idx} />
-            ))}
-          </div>
+        {/* 右侧基金列表 */}
+        <section>
+          {loading ? (
+            <LoadingSpinner label="加载基金数据..." />
+          ) : error ? (
+            <div className="card-light p-8">
+              <EmptyState
+                icon={<X className="w-12 h-12 text-red-500/60" />}
+                message={error}
+              />
+              <div className="text-center -mt-4 pb-2">
+                <button
+                  type="button"
+                  onClick={() => loadFunds(page, keyword, basic)}
+                  className="px-6 py-2 text-sm font-bold rounded-full transition-all hover:-translate-y-0.5"
+                  style={{
+                    background: '#c9a84c',
+                    color: '#1a1a1a',
+                    border: '1.5px solid #c9a84c',
+                  }}
+                >
+                  重试
+                </button>
+              </div>
+            </div>
+          ) : funds.length === 0 ? (
+            <div className="card-light p-8">
+              <EmptyState
+                icon={<X className="w-12 h-12 text-gray-400" />}
+                message="未找到匹配基金，请尝试调整筛选条件或更换关键词"
+              />
+            </div>
+          ) : (
+            <>
+              {/* 桌面：表格；移动：卡片网格 */}
+              <div className="hidden md:block">
+                <FundTable funds={funds} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+                {funds.map((fund, idx) => (
+                  <FundCard key={fund.id ?? fund.code} fund={fund} index={idx} />
+                ))}
+              </div>
 
-          <Pagination
-            current={page}
-            total={total}
-            pageSize={PAGE_SIZE}
-            onChange={setPage}
-          />
-        </>
-      )}
+              <Pagination
+                current={page}
+                total={total}
+                pageSize={PAGE_SIZE}
+                onChange={setPage}
+              />
+            </>
+          )}
+        </section>
+      </div>
 
       {/* 对比浮动按钮 */}
       {compareList.length > 0 && (
