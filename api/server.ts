@@ -153,20 +153,59 @@ async function fetchFundEstimate(code: string): Promise<any> {
 // ===== 东方财富接口：历史净值 =====
 async function fetchFundHistory(code: string, pageSize: number = 500): Promise<any[]> {
   try {
-    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=${pageSize}`;
+    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=${pageSize}&callback=jQuery112409`;
     const text = await httpGet(url, {
-      Referer: `https://fund.eastmoney.com/${code}.html`,
-      'Accept': 'application/json, text/plain, */*',
-      'Accept-Encoding': 'identity',
+      'Referer': `https://fund.eastmoney.com/${code}.html`,
+      'Accept': '*/*',
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate',
+      'Connection': 'keep-alive',
+      'X-Requested-With': 'XMLHttpRequest',
     });
     console.log(`fetchFundHistory for ${code}: response length = ${text.length}, first 200: ${text.substring(0, 200)}`);
-    const data = JSON.parse(text);
+    
+    // 解析JSONP响应：jQuery112409({...})
+    const jsonpMatch = text.match(/jQuery112409\(([\s\S]*)\)/);
+    if (!jsonpMatch) {
+      console.log(`fetchFundHistory for ${code}: no JSONP match, trying direct JSON parse`);
+      const data = JSON.parse(text);
+      const list = data.Data?.LSJZList || [];
+      console.log(`fetchFundHistory for ${code}: got ${list.length} records`);
+      return list;
+    }
+    
+    const data = JSON.parse(jsonpMatch[1]);
     const list = data.Data?.LSJZList || [];
     console.log(`fetchFundHistory for ${code}: got ${list.length} records`);
     return list;
   } catch (err) {
     console.error(`fetchFundHistory error for ${code}:`, err);
     return [];
+  }
+}
+
+// ===== 从基金主页面提取累计净值 =====
+async function fetchAccumulatedNavFromMain(code: string): Promise<number> {
+  try {
+    const url = `https://fund.eastmoney.com/${code}.html`;
+    const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
+    
+    // 提取累计净值：累计净值：<span>5.7696</span>
+    const match = text.match(/累计净值[：:]\s*<[^>]*>([\d.]+)</);
+    if (match) {
+      return parseFloat(match[1]) || 0;
+    }
+    
+    // 尝试其他格式
+    const match2 = text.match(/累计净值<\/[^>]*>[^<]*<[^>]*>([\d.]+)/);
+    if (match2) {
+      return parseFloat(match2[1]) || 0;
+    }
+    
+    return 0;
+  } catch (err) {
+    console.error(`fetchAccumulatedNavFromMain error for ${code}:`, err);
+    return 0;
   }
 }
 
@@ -508,8 +547,13 @@ app.get('/api/funds/:code/detail', async (req, res) => {
     ]);
 
     const nav = estimate?.nav || (history[0] ? parseFloat(history[0].DWJZ) : 0);
-    const accumulatedNav = history[0] ? parseFloat(history[0].LJJZ) || 0 : 0;
+    let accumulatedNav = history[0] ? parseFloat(history[0].LJJZ) || 0 : 0;
     const dailyChange = estimate?.estimatedChange || 0;
+
+    // 如果历史净值数据为空，尝试从基金主页面获取累计净值
+    if (history.length === 0 && accumulatedNav === 0) {
+      accumulatedNav = await fetchAccumulatedNavFromMain(code);
+    }
 
     // 使用历史净值数据，如果为空则使用pingzhongdata中的净值走势
     let navHistory: { date: string; value: number }[] = [];
