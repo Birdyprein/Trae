@@ -10,20 +10,23 @@ export default function MarketIndexCard({ index }: MarketIndexCardProps) {
   const color = getChangeColor(change);
   const isUp = (change ?? 0) > 0;
   const isDown = (change ?? 0) < 0;
+  const arrow = isUp ? '▲' : isDown ? '▼' : '—';
   const changeText = change === undefined || change === null
     ? '--'
     : `${change >= 0 ? '+' : ''}${formatNumber(change)}`;
 
   return (
-    <div className="card-light p-4 animate-fade-in cursor-default">
-      <div className="text-xs font-medium mb-1" style={{ color: '#6b7280', letterSpacing: '0.02em' }}>
-        {name}
+    <div className="glass-card p-4 animate-fade-in">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-secondary line-clamp-1">{name}</span>
+        <span className={`text-xs ${color}`}>{arrow}</span>
       </div>
-      <div className="text-xl font-bold mb-1" style={{ fontFamily: 'var(--font-mono, monospace)', letterSpacing: '-0.3px' }}>
+      <div className={`text-2xl font-display font-bold ${color}`}>
         {formatNumber(value)}
       </div>
-      <div className={`text-sm font-semibold font-mono ${color}`}>
-        {changeText} ({formatPercent(changePercent)})
+      <div className="flex items-center gap-3 mt-1 text-sm">
+        <span className={color}>{changeText}</span>
+        <span className={color}>{formatPercent(changePercent)}</span>
       </div>
     </div>
   );

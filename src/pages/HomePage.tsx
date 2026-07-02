@@ -58,81 +58,39 @@ export default function HomePage() {
 
   return (
     <div className="section-container section-padding space-y-8 sm:space-y-10">
-      {/* Hero 区域 - 专业蓝色渐变风格 */}
-      <section className="relative overflow-hidden rounded-2xl animate-slide-up" style={{
-        background: 'linear-gradient(160deg, #0f2640 0%, #1a3a5c 40%, #1e4d78 100%)',
-        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.06)'
-      }}>
-        {/* 装饰性圆形背景 */}
-        <div className="absolute right-[-60px] top-[-80px] w-80 h-80 rounded-full opacity-30" style={{ background: 'rgba(255, 255, 255, 0.03)' }} />
-        <div className="absolute right-[120px] bottom-[-100px] w-48 h-48 rounded-full opacity-80" style={{ background: 'rgba(201, 168, 76, 0.08)' }} />
-        
-        <div className="relative z-10 p-8 sm:p-12 lg:p-14 flex flex-col lg:flex-row items-center gap-8">
-          <div className="flex-1">
-            <div className="inline-block px-4 py-1.5 rounded-full text-xs font-medium mb-4 backdrop-blur-sm" style={{
-              background: 'rgba(255, 255, 255, 0.12)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              color: 'rgba(255, 255, 255, 0.9)'
-            }}>
-              📈 实时数据 · 专业选基
-            </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight text-white mb-3">
-              精选优质<span style={{ color: '#e0c878' }}>基金</span>
-              <br />
-              助力财富稳健增长
-            </h1>
-            <p className="text-sm sm:text-base leading-relaxed mb-6 max-w-lg" style={{ color: 'rgba(255, 255, 255, 0.75)' }}>
-              涵盖股票型、债券型、混合型、指数型及货币型全品类基金，智能筛选，数据透明，为您的每一笔投资保驾护航。
-            </p>
-            <div className="flex flex-wrap gap-6 mb-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">8,200+</div>
-                <div className="text-xs mt-1" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>精选基金</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">¥3.6万亿</div>
-                <div className="text-xs mt-1" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>管理规模</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">99.7%</div>
-                <div className="text-xs mt-1" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>系统可用率</div>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setSipOpen(true)}
-                className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold rounded-full transition-all hover:-translate-y-0.5"
-                style={{
-                  background: '#c9a84c',
-                  color: '#1a1a1a',
-                  border: '1.5px solid #c9a84c',
-                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.07)'
-                }}
-              >
-                <Calculator className="w-4 h-4" />
-                定投计算器
-              </button>
-              <Link
-                to="/funds"
-                className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-full transition-all hover:-translate-y-0.5"
-                style={{
-                  background: 'transparent',
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  border: '1.5px solid rgba(255, 255, 255, 0.3)'
-                }}
-              >
-                <LayoutGrid className="w-4 h-4" />
-                浏览基金
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+      {/* Hero 区域 */}
+      <section className="glass-card p-6 sm:p-10 lg:p-14 relative overflow-hidden animate-slide-up">
+        <div className="relative z-10 max-w-3xl">
+          <div className="inline-flex items-center gap-1.5 glass-badge mb-4">
+            <TrendingUp className="w-3 h-3" />
+            <span>iOS 26 Liquid Glass · 玻璃态基金分析</span>
           </div>
-          <div className="hidden lg:flex items-center justify-center w-56 h-56 rounded-full border-2 border-dashed" style={{
-            background: 'rgba(255, 255, 255, 0.04)',
-            borderColor: 'rgba(255, 255, 255, 0.15)'
-          }}>
-            <span className="text-7xl opacity-80">📊</span>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
+            <span className="gradient-text-gold">洞察市场脉搏</span>
+            <br />
+            <span className="text-white">科学配置基金资产</span>
+          </h1>
+          <p className="mt-4 text-secondary text-sm sm:text-base leading-relaxed max-w-2xl">
+            一站式基金信息展示与分析平台，提供市场指数、板块行情、基金筛选、组合穿透分析等全链路工具，
+            助您在透明数据中做出明智决策。
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setSipOpen(true)}
+              className="glass-button-gold inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium"
+            >
+              <Calculator className="w-4 h-4" />
+              定投计算器
+            </button>
+            <Link
+              to="/funds"
+              className="glass-button inline-flex items-center gap-2 px-5 py-2.5 text-sm text-white font-medium"
+            >
+              <LayoutGrid className="w-4 h-4" />
+              浏览基金
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
       </section>
