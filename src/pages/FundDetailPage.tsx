@@ -13,7 +13,6 @@ import {
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import EmptyState from '@/components/common/EmptyState';
 import NavChart from '@/components/fund/NavChart';
-import BenchmarkSelector from '@/components/fund/BenchmarkSelector';
 import PerformanceTable from '@/components/fund/PerformanceTable';
 import RiskMetricsCards from '@/components/fund/RiskMetricsCards';
 import AssetAllocationChart from '@/components/fund/AssetAllocationChart';
@@ -244,14 +243,6 @@ export default function FundDetailPage() {
       {/* 净值走势 + 基准选择 */}
       <section>
         <h2 className="text-base sm:text-lg font-semibold text-white mb-4">净值走势</h2>
-        <div className="glass-card p-4 sm:p-5 mb-4">
-          <div className="text-xs text-muted mb-3">选择基准（可多选）</div>
-          <BenchmarkSelector
-            selected={selectedBenchmarkCodes}
-            onChange={setSelectedBenchmarkCodes}
-          />
-        </div>
-
         {/* 时间范围切换 */}
         <div className="flex flex-wrap gap-1.5 mb-4">
           {TIME_RANGES.map((r) => (
