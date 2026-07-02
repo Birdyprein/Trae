@@ -12,7 +12,7 @@ interface NavItem {
   label: string;
 }
 
-const NAV_ITEMS: NavItem[] = [
+const NAV_ITEMS = [
   { to: '/', label: '首页' },
   { to: '/funds', label: '基金' },
   { to: '/watchlist', label: '自选' },
