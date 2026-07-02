@@ -17,25 +17,20 @@ export default function PortfolioAnalysis({ fundIds }: PortfolioAnalysisProps) {
   const [error, setError] = useState<string | null>(null);
 
   const load = async (ids: string[]) => {
-    console.log('[PortfolioAnalysis] load called with ids:', ids);
     if (!ids || ids.length < 2) {
-      console.log('[PortfolioAnalysis] Less than 2 funds, skipping');
       setData(null);
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      console.log('[PortfolioAnalysis] Fetching portfolio analysis...');
       const result = await fetchPortfolioAnalysis(ids);
-      console.log('[PortfolioAnalysis] API result:', result);
       if (result) {
         setData(result);
       } else {
         setError('分析数据加载失败');
       }
-    } catch (err) {
-      console.error('[PortfolioAnalysis] Error:', err);
+    } catch {
       setError('分析数据加载失败');
     } finally {
       setLoading(false);

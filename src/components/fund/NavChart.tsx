@@ -62,9 +62,6 @@ export default function NavChart({ fundNav, benchmarks, loading }: NavChartProps
   const [showBenchmarks, setShowBenchmarks] = useState<boolean>(true);
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
 
-  console.log('[NavChart] Props:', { fundNavLength: fundNav?.length, benchmarksLength: benchmarks?.length, loading });
-  console.log('[NavChart] fundNav sample:', fundNav?.[0], fundNav?.[fundNav.length - 1]);
-
   const merged = useMemo(() => {
     const map = new Map<string, Record<string, number | string>>();
     fundNav.forEach((p) => {
@@ -79,11 +76,9 @@ export default function NavChart({ fundNav, benchmarks, loading }: NavChartProps
         map.set(p.date, entry);
       });
     });
-    const result = Array.from(map.values()).sort((a, b) =>
+    return Array.from(map.values()).sort((a, b) =>
       String(a.date).localeCompare(String(b.date))
     );
-    console.log('[NavChart] Merged data length:', result.length, 'sample:', result[0], result[result.length - 1]);
-    return result;
   }, [fundNav, benchmarks]);
 
   const yDomain = useMemo<[number, number]>(() => {

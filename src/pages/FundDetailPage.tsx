@@ -75,12 +75,10 @@ export default function FundDetailPage() {
     if (!c) return;
     setNavLoading(true);
     try {
-      console.log(`[FundDetailPage] Loading nav for ${c}, days=${days}`);
       const data = await fetchFundNav(c, days);
-      console.log(`[FundDetailPage] Nav data received:`, data?.length, 'records', data?.[0]);
       setNavHistory(data);
     } catch (err) {
-      console.error(`[FundDetailPage] Nav load error:`, err);
+      console.error('Nav load error:', err);
     } finally {
       setNavLoading(false);
     }
