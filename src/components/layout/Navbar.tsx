@@ -48,8 +48,8 @@ const Navbar: React.FC<NavbarProps> = ({ onSearch }) => {
     [
       'px-3 py-1.5 text-sm rounded-lg transition-colors whitespace-nowrap',
       isActive
-        ? 'text-gold-300 bg-white/5'
-        : 'text-secondary hover:text-white hover:bg-white/5',
+        ? 'text-gold-300 bg-black/40'
+        : 'text-secondary hover:text-white hover:bg-black/30',
     ].join(' ');
 
   return (
