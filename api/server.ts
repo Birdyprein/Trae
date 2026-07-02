@@ -8,10 +8,22 @@ app.use(cors());
 app.use(express.json());
 
 async function httpGet(url: string, headers?: Record<string, string>): Promise<string> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', ...headers },
-  });
-  return res.text();
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', ...headers },
+      });
+      return await res.text();
+    } catch (err) {
+      lastError = err as Error;
+      console.log(`httpGet retry ${i + 1}/${maxRetries} failed for ${url}`);
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    }
+  }
+  throw lastError;
 }
 
 function parseJsonp(text: string): any {
