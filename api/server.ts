@@ -227,9 +227,83 @@ async function fetchPingzhongData(code: string): Promise<any> {
     const fundCode = extractVar('fS_code');
     
     // 获取基金规模、成立日期、基金公司等信息
-    const fundScale = extractVar('fund_scale') || extractVar('Data_fundScale') || 0;
-    const establishDate = extractVar('Data_establishDate') || extractVar('fund_establishDate') || '';
-    const company = extractVar('Data_company') || extractVar('fund_company') || '';
+    // 尝试多种可能的变量名
+    let fundScale = extractVar('fund_scale') || extractVar('Data_fundScale') || 0;
+    let establishDate = extractVar('Data_establishDate') || extractVar('fund_establishDate') || '';
+    let company = extractVar('Data_company') || extractVar('fund_company') || '';
+    
+    // 如果 pingzhongdata 中没有这些信息，尝试从其他 API 获取
+    if (!company || !establishDate || fundScale === 0) {
+      try {
+        // 尝试从基金档案页面获取基本信息
+        const fundInfoUrl = `https://fund.eastmoney.com/${code}.html`;
+        const fundInfoText = await httpGet(fundInfoUrl, { Referer: 'https://fund.eastmoney.com/' });
+        
+        // 提取基金公司名称
+        if (!company) {
+          const companyMatch = fundInfoText.match(/基金公司[：:]\s*([^<\n]+)/);
+          if (companyMatch) {
+            company = companyMatch[1].trim();
+          }
+        }
+        
+        // 提取成立日期
+        if (!establishDate) {
+          const dateMatch = fundInfoText.match(/成立日期[：:]\s*([^<\n]+)/);
+          if (dateMatch) {
+            establishDate = dateMatch[1].trim();
+          }
+        }
+        
+        // 提取基金规模
+        if (fundScale === 0) {
+          const scaleMatch = fundInfoText.match(/基金规模[：:]\s*([\d.]+)\s*亿元/);
+          if (scaleMatch) {
+            fundScale = parseFloat(scaleMatch[1]) * 100000000; // 转换为元
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to fetch fund info from ${fundInfoUrl}:`, err);
+      }
+    }
+    
+    // 如果还是没有获取到，尝试从 f10 页面获取
+    if (!company || !establishDate || fundScale === 0) {
+      try {
+        const f10Url = `https://fundf10.eastmoney.com/jbgk_${code}.html`;
+        const f10Text = await httpGet(f10Url, { Referer: 'https://fund.eastmoney.com/' });
+        
+        // 提取基金公司名称（从基金管理人链接）
+        if (!company) {
+          const companyMatch = f10Text.match(/基金管理人<\/th><td><a[^>]*>([^<]+)<\/a>/);
+          if (companyMatch) {
+            company = companyMatch[1].trim();
+          }
+        }
+        
+        // 提取成立日期
+        if (!establishDate) {
+          const dateMatch = f10Text.match(/成立日期\/规模<\/th><td>(\d{4}年\d{2}月\d{2}日)/);
+          if (dateMatch) {
+            // 转换格式：2008年06月19日 -> 2008-06-19
+            const parts = dateMatch[1].match(/(\d{4})年(\d{2})月(\d{2})日/);
+            if (parts) {
+              establishDate = `${parts[1]}-${parts[2]}-${parts[3]}`;
+            }
+          }
+        }
+        
+        // 提取基金规模
+        if (fundScale === 0) {
+          const scaleMatch = f10Text.match(/净资产规模<\/th><td>([\d.]+)亿元/);
+          if (scaleMatch) {
+            fundScale = parseFloat(scaleMatch[1]) * 100000000; // 转换为元
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to fetch fund info from ${f10Url}:`, err);
+      }
+    }
     
     // 获取股票持仓详情（包含名称和占比）
     const stockCodesNewRaw = extractVar('stockCodesNew') || [];
