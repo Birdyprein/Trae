@@ -550,6 +550,8 @@ app.get('/api/funds/:code/detail', async (req, res) => {
 app.get('/api/funds/:code/nav', async (req, res) => {
   const code = req.params.code;
   const days = parseInt(req.query.days as string) || 365;
+  
+  // 1. 尝试东方财富历史净值API
   try {
     const history = await fetchFundHistory(code, days);
     if (history.length > 0) {
@@ -562,7 +564,44 @@ app.get('/api/funds/:code/nav', async (req, res) => {
       res.json({ data, source: 'eastmoney' });
       return;
     }
-  } catch {}
+  } catch (err) {
+    console.error(`fetchFundHistory failed for ${code}:`, err);
+  }
+  
+  // 2. 备选：使用pingzhongdata的净值走势数据
+  try {
+    const pingzhong = await fetchPingzhongData(code);
+    if (pingzhong?.netWorth && Array.isArray(pingzhong.netWorth) && pingzhong.netWorth.length > 0) {
+      // Data_netWorthTrend格式: [{x: timestamp, y: navValue}, ...]
+      const netWorthData = pingzhong.netWorth;
+      
+      // 根据days筛选数据
+      const now = Date.now();
+      const cutoffTime = now - days * 24 * 60 * 60 * 1000;
+      
+      const filteredData = netWorthData
+        .filter((item: any) => {
+          const timestamp = typeof item.x === 'number' ? item.x : new Date(item.x).getTime();
+          return timestamp >= cutoffTime;
+        })
+        .map((item: any) => {
+          const timestamp = typeof item.x === 'number' ? item.x : new Date(item.x).getTime();
+          const dateObj = new Date(timestamp);
+          // 使用本地时间格式，避免UTC时区问题
+          const date = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+          const value = parseFloat(item.y) || 0;
+          return { date, value, accumulatedNav: value, dailyChange: 0 };
+        });
+      
+      if (filteredData.length > 0) {
+        res.json({ data: filteredData, source: 'pingzhongdata' });
+        return;
+      }
+    }
+  } catch (err) {
+    console.error(`fetchPingzhongData fallback failed for ${code}:`, err);
+  }
+  
   res.json({ data: [], source: 'empty' });
 });
 
