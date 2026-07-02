@@ -7,21 +7,46 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-// ===== HTTP请求工具（带重试） =====
+// ===== 缓存系统 =====
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
+
+function getCached<T>(key: string): T | null {
+  const item = cache.get(key);
+  if (item && Date.now() - item.timestamp < CACHE_TTL) {
+    return item.data as T;
+  }
+  cache.delete(key);
+  return null;
+}
+
+function setCache(key: string, data: any): void {
+  cache.set(key, { data, timestamp: Date.now() });
+}
+
+// ===== HTTP请求工具（带重试和超时） =====
 async function httpGet(url: string, headers?: Record<string, string>): Promise<string> {
   const maxRetries = 3;
+  const timeout = 10000; // 10秒超时
   let lastError: Error | null = null;
   
   for (let i = 0; i < maxRetries; i++) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
       const res = await fetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', ...headers },
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       return await res.text();
     } catch (err) {
       lastError = err as Error;
+      console.log(`httpGet retry ${i + 1}/${maxRetries} failed for ${url}`);
       if (i < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
       }
     }
   }
@@ -216,7 +241,7 @@ function calcReturn(history: any[], days: number): number {
   return Math.round((latest / old - 1) * 10000) / 100;
 }
 
-// ===== 基金列表接口（直接调用天天基金API） =====
+// ===== 基金列表接口（直接调用天天基金API，带缓存） =====
 app.get('/api/funds/list', async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -224,6 +249,13 @@ app.get('/api/funds/list', async (req, res) => {
     const fundType = req.query.type as string || 'all';
     const sortBy = req.query.sortBy as string || 'year1Return';
     const sortOrder = req.query.sortOrder as string || 'desc';
+
+    // 缓存键
+    const cacheKey = `funds_list_${page}_${size}_${fundType}_${sortBy}_${sortOrder}`;
+    const cached = getCached<{ funds: any[]; total: number }>(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, source: 'cache' });
+    }
 
     // 映射排序字段到天天基金API的排序字段
     const sortFieldMap: Record<string, string> = {
@@ -269,7 +301,9 @@ app.get('/api/funds/list', async (req, res) => {
       source: '1234567',
     }));
 
-    res.json({ funds, total, source: '1234567' });
+    const result = { funds, total, source: '1234567' };
+    setCache(cacheKey, result);
+    res.json(result);
   } catch (err) {
     console.error('Fund list error:', err);
     res.json({ funds: [], total: 0, source: 'error', error: String(err) });
@@ -308,8 +342,6 @@ app.get('/api/funds/:code/detail', async (req, res) => {
       fetchPingzhongData(code),
     ]);
 
-    const baseInfo = FUND_DATABASE.find(f => f.code === code);
-
     const nav = estimate?.nav || (history[0] ? parseFloat(history[0].DWJZ) : 0);
     const accumulatedNav = history[0] ? parseFloat(history[0].LJJZ) || 0 : 0;
     const dailyChange = estimate?.estimatedChange || 0;
@@ -333,7 +365,7 @@ app.get('/api/funds/:code/detail', async (req, res) => {
 
     const managerInfo = pingzhong?.manager || {};
     const managerDetail = {
-      name: managerInfo.name || baseInfo?.manager || '--',
+      name: managerInfo.name || '--',
       tenure: managerInfo.workTime ? Math.round((Date.now() - new Date(managerInfo.workTime).getTime()) / (365 * 24 * 60 * 60 * 1000) * 10) / 10 : 0,
       tenureReturn: parseFloat(managerInfo.fundScale) || 0,
       managedFunds: managerInfo.fundCount || 0,
@@ -344,13 +376,13 @@ app.get('/api/funds/:code/detail', async (req, res) => {
     const detail = {
       id: code,
       code,
-      name: estimate?.name || pingzhong?.name || baseInfo?.name || `基金${code}`,
-      type: baseInfo?.type || '混合型',
-      riskLevel: baseInfo?.riskLevel || 3,
+      name: estimate?.name || pingzhong?.name || `基金${code}`,
+      type: '混合型',
+      riskLevel: 3,
       manager: managerDetail.name,
-      company: pingzhong?.company || baseInfo?.company || '--',
-      establishDate: pingzhong?.establishDate || baseInfo?.establishDate || '--',
-      scale: (pingzhong?.scale || baseInfo?.scale || 0) / 100000000,
+      company: pingzhong?.company || '--',
+      establishDate: pingzhong?.establishDate || '--',
+      scale: (pingzhong?.scale || 0) / 100000000,
       nav: Math.round(nav * 10000) / 10000,
       accumulatedNav: Math.round(accumulatedNav * 10000) / 10000,
       dailyChange: Math.round(dailyChange * 100) / 100,
@@ -369,16 +401,15 @@ app.get('/api/funds/:code/detail', async (req, res) => {
     res.json(detail);
   } catch (err) {
     console.error('Fund detail error:', err);
-    const baseInfo = FUND_DATABASE.find(f => f.code === code);
     res.json({
       id: code, code,
-      name: baseInfo?.name || `基金${code}`,
-      type: baseInfo?.type || '混合型',
-      riskLevel: baseInfo?.riskLevel || 3,
-      manager: baseInfo?.manager || '--',
-      company: baseInfo?.company || '--',
-      establishDate: baseInfo?.establishDate || '--',
-      scale: baseInfo?.scale || 0,
+      name: `基金${code}`,
+      type: '混合型',
+      riskLevel: 3,
+      manager: '--',
+      company: '--',
+      establishDate: '--',
+      scale: 0,
       nav: 0, accumulatedNav: 0, dailyChange: 0, yearlyReturn: 0,
       performance: { month1: 0, month3: 0, month6: 0, year1: 0, year2: 0, year3: 0, year5: 0, thisYear: 0, sinceEstablish: 0 },
       ranking: { month1: 0, month3: 0, year1: 0, sameTypeCount: 0 },
