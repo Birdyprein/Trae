@@ -292,6 +292,12 @@ export default function FundDetailPage() {
         industryAllocation={detail.industryAllocation}
       />
 
+      {/* 持仓明细 */}
+      <section>
+        <h2 className="text-base sm:text-lg font-semibold text-white mb-4">持仓明细</h2>
+        <HoldingsTable holdings={detail.topHoldings} />
+      </section>
+
       <SIPCalculator isOpen={sipOpen} onClose={() => setSipOpen(false)} />
     </div>
   );
