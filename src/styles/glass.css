@@ -1,95 +1,81 @@
-/* ===== iOS 26 Liquid Glass 玻璃态设计系统 ===== */
+/* ===== iOS 26 Liquid Glass 玻璃态设计系统 - 实色不透明版本 ===== */
 
-/* 展示型玻璃卡片 - 低信息密度，强调视觉美感 */
+/* 展示型玻璃卡片 - 不透明实色背景 */
 .glass-card {
-  background: rgba(15, 15, 30, 0.6);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(15, 15, 30);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
 }
 
 .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 
-/* 数据密集型半透明实底 - 高信息密度，减少模糊提升阅读效率 */
+/* 数据密集型实底 - 不透明 */
 .glass-data-card {
-  background: rgba(20, 20, 35, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgb(20, 20, 35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
 }
 
-/* 数据表格容器 */
+/* 数据表格容器 - 不透明 */
 .glass-table {
-  background: rgba(20, 20, 35, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgb(20, 20, 35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   overflow: hidden;
 }
 
 /* 表格行 */
 .glass-table-row {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   transition: background 0.15s ease;
 }
 
 .glass-table-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgb(35, 35, 55);
 }
 
-/* 玻璃态导航栏 */
+/* 玻璃态导航栏 - 不透明 */
 .glass-nav {
-  background: rgba(5, 5, 8, 0.7);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(5, 5, 15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-/* 玻璃态弹窗 */
+/* 玻璃态弹窗 - 不透明 */
 .glass-modal {
-  background: rgba(15, 15, 25, 0.75);
-  backdrop-filter: blur(32px) saturate(150%);
-  -webkit-backdrop-filter: blur(32px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgb(15, 15, 25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
 }
 
-/* 玻璃态遮罩层 */
+/* 玻璃态遮罩层 - 不透明 */
 .glass-overlay {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgb(0, 0, 0);
 }
 
-/* 玻璃态按钮 */
+/* 玻璃态按钮 - 不透明 */
 .glass-button {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgb(40, 40, 55);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 10px;
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .glass-button:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgb(55, 55, 70);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
-/* 金色强调按钮 */
+/* 金色强调按钮 - 不透明 */
 .glass-button-gold {
-  background: rgba(212, 168, 83, 0.15);
-  border: 1px solid rgba(212, 168, 83, 0.3);
+  background: rgb(60, 45, 25);
+  border: 1px solid rgba(212, 168, 83, 0.5);
   color: #D4A853;
   border-radius: 10px;
   transition: all 0.2s ease;
@@ -97,16 +83,14 @@
 }
 
 .glass-button-gold:hover {
-  background: rgba(212, 168, 83, 0.25);
-  border-color: rgba(212, 168, 83, 0.4);
+  background: rgb(80, 60, 35);
+  border-color: rgba(212, 168, 83, 0.7);
 }
 
-/* 玻璃态输入框 - 黑色背景白色文字 */
+/* 玻璃态输入框 - 纯黑色背景白色文字 */
 .glass-input {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(12px) saturate(120%);
-  -webkit-backdrop-filter: blur(12px) saturate(120%);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgb(0, 0, 0);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
   color: #FFFFFF;
   transition: all 0.2s ease;
@@ -118,12 +102,12 @@
 
 .glass-input:focus {
   outline: none;
-  border-color: rgba(212, 168, 83, 0.4);
-  background: rgba(0, 0, 0, 0.6);
-  box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.12);
+  border-color: rgba(212, 168, 83, 0.5);
+  background: rgb(0, 0, 0);
+  box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.15);
 }
 
-/* 下拉选择框适配 - 黑色弹出层白色文字 */
+/* 下拉选择框适配 - 纯黑弹出层白色文字 */
 .glass-input option {
   background: rgb(0, 0, 0);
   color: #FFFFFF;
@@ -131,7 +115,7 @@
 }
 
 .glass-input option:checked {
-  background: rgba(212, 168, 83, 0.2);
+  background: rgb(40, 30, 15);
   color: #FFFFFF;
 }
 
@@ -140,16 +124,14 @@
   color: #FFFFFF;
 }
 
-/* 复选框适配 - 黑色背景 */
+/* 复选框适配 - 纯黑背景 */
 .glass-input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgb(0, 0, 0);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -157,8 +139,8 @@
 }
 
 .glass-input[type="checkbox"]:checked {
-  background: rgba(0, 0, 0, 0.5);
-  border-color: rgba(212, 168, 83, 0.6);
+  background: rgb(0, 0, 0);
+  border-color: rgba(212, 168, 83, 0.7);
 }
 
 .glass-input[type="checkbox"]:checked::after {
@@ -174,19 +156,17 @@
 }
 
 .glass-input[type="checkbox"]:hover {
-  border-color: rgba(212, 168, 83, 0.4);
+  border-color: rgba(212, 168, 83, 0.5);
 }
 
-/* 单选框适配 - 黑色背景 */
+/* 单选框适配 - 纯黑背景 */
 .glass-input[type="radio"] {
   appearance: none;
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgb(0, 0, 0);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -194,8 +174,8 @@
 }
 
 .glass-input[type="radio"]:checked {
-  background: rgba(0, 0, 0, 0.5);
-  border-color: rgba(212, 168, 83, 0.6);
+  background: rgb(0, 0, 0);
+  border-color: rgba(212, 168, 83, 0.7);
 }
 
 .glass-input[type="radio"]:checked::after {
@@ -211,32 +191,22 @@
 }
 
 .glass-input[type="radio"]:hover {
-  border-color: rgba(212, 168, 83, 0.4);
+  border-color: rgba(212, 168, 83, 0.5);
 }
 
-/* 玻璃态标签/徽章 */
+/* 玻璃态标签/徽章 - 不透明 */
 .glass-badge {
-  background: rgba(212, 168, 83, 0.1);
-  border: 1px solid rgba(212, 168, 83, 0.2);
+  background: rgb(45, 35, 20);
+  border: 1px solid rgba(212, 168, 83, 0.4);
   color: #D4A853;
   border-radius: 9999px;
   font-size: 0.75rem;
   padding: 0.125rem 0.5rem;
 }
 
-/* 玻璃态卡片内部数值容器（风险指标用） */
+/* 玻璃态卡片内部数值容器 - 不透明 */
 .glass-metric-box {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgb(10, 10, 20);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-}
-
-/* 不支持 backdrop-filter 的降级 */
-@supports not (backdrop-filter: blur(1px)) {
-  .glass-card { background: rgba(15, 15, 30, 0.95); }
-  .glass-data-card { background: rgba(20, 20, 35, 0.95); }
-  .glass-table { background: rgba(20, 20, 35, 0.95); }
-  .glass-nav { background: rgba(5, 5, 8, 0.95); }
-  .glass-modal { background: rgba(15, 15, 25, 0.95); }
-  .glass-button { background: rgba(255, 255, 255, 0.15); }
 }
