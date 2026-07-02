@@ -79,13 +79,17 @@ async function fetchFundRank(page: number = 1, pageSize: number = 20, sortField:
       'ETF': 'etf',
       'QDII': 'qdii',
     };
-    const ft = ftMap[fundType] || 'all';
+    
+    // 支持多个类型（逗号分隔），取第一个类型进行筛选
+    // 如果天天基金API支持多类型筛选，可以后续扩展
+    const types = fundType.split(',').map(t => t.trim()).filter(t => t);
+    const ft = types.length > 0 ? (ftMap[types[0]] || 'all') : 'all';
     
     const url = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${ft}&rs=&gs=0&sc=${sortField}&st=${sortOrder}&sd=2025-07-02&ed=2026-07-02&qdii=&tabSubtype=,,,,,&pi=${page}&pn=${pageSize}&dx=1`;
     const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
     
     // 解析返回数据：var rankData = {datas:["...","..."],allRecords:19856,...}
-    const datasMatch = text.match(/datas:\[(.*?)\]/);
+    const datasMatch = text.match(/datas:\[([\s\S]*?)\]/);
     const allRecordsMatch = text.match(/allRecords:(\d+)/);
     
     if (!datasMatch) return { funds: [], total: 0 };
