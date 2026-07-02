@@ -41,44 +41,64 @@ function parseJsonp(text: string): any {
   return null;
 }
 
-// ===== 精选基金数据库 =====
-const FUND_DATABASE: { code: string; name: string; type: string; manager: string; company: string; establishDate: string; scale: number; riskLevel: number }[] = [
-  { code: '110011', name: '易方达优质精选混合', type: '股票型', manager: '张坤', company: '易方达基金', establishDate: '2007-12-18', scale: 285.6, riskLevel: 5 },
-  { code: '270002', name: '广发小盘成长混合', type: '股票型', manager: '刘格菘', company: '广发基金', establishDate: '2005-02-02', scale: 98.3, riskLevel: 5 },
-  { code: '163406', name: '兴全合润混合', type: '股票型', manager: '谢治宇', company: '兴全基金', establishDate: '2010-04-22', scale: 156.8, riskLevel: 5 },
-  { code: '519066', name: '汇添富蓝筹稳健混合', type: '股票型', manager: '雷鸣', company: '汇添富基金', establishDate: '2008-07-08', scale: 45.2, riskLevel: 5 },
-  { code: '000209', name: '信澳消费优选混合', type: '股票型', manager: '徐聪', company: '信澳基金', establishDate: '2013-11-15', scale: 32.1, riskLevel: 5 },
-  { code: '005827', name: '易方达蓝筹精选混合', type: '混合型', manager: '张坤', company: '易方达基金', establishDate: '2018-09-05', scale: 198.5, riskLevel: 4 },
-  { code: '001071', name: '华安媒体互联网混合A', type: '混合型', manager: '胡宜廷', company: '华安基金', establishDate: '2015-05-15', scale: 67.8, riskLevel: 4 },
-  { code: '000577', name: '安信价值精选股票', type: '混合型', manager: '陈一峰', company: '安信基金', establishDate: '2014-04-21', scale: 54.3, riskLevel: 4 },
-  { code: '519712', name: '建信中证500指数增强A', type: '混合型', manager: '叶乐天', company: '建信基金', establishDate: '2014-01-27', scale: 89.2, riskLevel: 4 },
-  { code: '001856', name: '国泰智能汽车股票', type: '混合型', manager: '王阳', company: '国泰基金', establishDate: '2017-08-15', scale: 43.6, riskLevel: 4 },
-  { code: '001475', name: '易方达环保主题混合', type: '混合型', manager: '祁禾', company: '易方达基金', establishDate: '2017-06-28', scale: 76.5, riskLevel: 4 },
-  { code: '008888', name: '华夏国证半导体芯片ETF联接A', type: '混合型', manager: '荣膺', company: '华夏基金', establishDate: '2020-01-15', scale: 123.4, riskLevel: 4 },
-  { code: '003838', name: '安信尊享添益债券A', type: '债券型', manager: '张翼飞', company: '安信基金', establishDate: '2018-12-25', scale: 65.8, riskLevel: 2 },
-  { code: '005918', name: '博时中债7-10年政金债', type: '债券型', manager: '陈凯杨', company: '博时基金', establishDate: '2018-08-08', scale: 134.2, riskLevel: 2 },
-  { code: '006327', name: '易方达稳健回报混合A', type: '债券型', manager: '胡剑', company: '易方达基金', establishDate: '2018-10-12', scale: 98.7, riskLevel: 2 },
-  { code: '000914', name: '中加纯债一年A', type: '债券型', manager: '闾肇琪', company: '中加基金', establishDate: '2014-11-10', scale: 34.5, riskLevel: 2 },
-  { code: '161725', name: '招商中证白酒指数(LOF)A', type: '指数型', manager: '侯昊', company: '招商基金', establishDate: '2015-05-27', scale: 287.3, riskLevel: 4 },
-  { code: '110003', name: '易方达50指数A', type: '指数型', manager: '余海燕', company: '易方达基金', establishDate: '2004-03-22', scale: 198.6, riskLevel: 4 },
-  { code: '001180', name: '广发医药健康混合A', type: '指数型', manager: '吴兴武', company: '广发基金', establishDate: '2015-09-18', scale: 67.9, riskLevel: 4 },
-  { code: '006751', name: '易方达上证50ETF联接A', type: '指数型', manager: '张湛', company: '易方达基金', establishDate: '2019-01-23', scale: 89.4, riskLevel: 4 },
-  { code: '000834', name: '华夏纳斯达克100ETF联接A', type: 'QDII', manager: '潘水洋', company: '华夏基金', establishDate: '2014-12-08', scale: 156.7, riskLevel: 5 },
-  { code: '050025', name: '博时标普500ETF联接A', type: 'QDII', manager: '万琼', company: '博时基金', establishDate: '2013-12-05', scale: 98.2, riskLevel: 5 },
-  { code: '160213', name: '国泰纳斯达克100指数', type: 'QDII', manager: '艾小军', company: '国泰基金', establishDate: '2010-08-27', scale: 45.6, riskLevel: 5 },
-  { code: '510300', name: '华泰柏瑞沪深300ETF', type: 'ETF', manager: '柳军', company: '华泰柏瑞基金', establishDate: '2012-05-28', scale: 567.8, riskLevel: 4 },
-  { code: '159915', name: '易方达创业板ETF', type: 'ETF', manager: '成曦', company: '易方达基金', establishDate: '2011-09-20', scale: 234.5, riskLevel: 5 },
-  { code: '510050', name: '华夏上证50ETF', type: 'ETF', manager: '张弘弢', company: '华夏基金', establishDate: '2004-12-30', scale: 345.6, riskLevel: 4 },
-  { code: '159949', name: '创业板50ETF', type: 'ETF', manager: '方昊', company: '华安基金', establishDate: '2016-06-30', scale: 123.4, riskLevel: 5 },
-  { code: '002340', name: '华夏行业景气混合', type: '混合型', manager: '屠环宇', company: '华夏基金', establishDate: '2016-09-28', scale: 78.9, riskLevel: 4 },
-  { code: '005854', name: '富国臻选回报混合A', type: '混合型', manager: '曹晋', company: '富国基金', establishDate: '2018-07-04', scale: 56.7, riskLevel: 4 },
-  { code: '001668', name: '景顺长城环保优势股票', type: '股票型', manager: '杨锐文', company: '景顺长城基金', establishDate: '2015-09-10', scale: 43.2, riskLevel: 5 },
-  { code: '002983', name: '万家臻选混合', type: '混合型', manager: '莫海波', company: '万家基金', establishDate: '2017-03-22', scale: 34.5, riskLevel: 4 },
-  { code: '000961', name: '南方新兴龙头混合', type: '混合型', manager: '茅炜', company: '南方基金', establishDate: '2015-03-16', scale: 67.8, riskLevel: 4 },
-  { code: '001938', name: '东方红优势精选混合', type: '混合型', manager: '王延飞', company: '东方红基金', establishDate: '2016-01-15', scale: 89.0, riskLevel: 4 },
-  { code: '004851', name: '广发高端制造股票A', type: '股票型', manager: '孙迪', company: '广发基金', establishDate: '2017-09-28', scale: 123.4, riskLevel: 5 },
-  { code: '000409', name: '鹏华环保产业股票', type: '股票型', manager: '孟昊', company: '鹏华基金', establishDate: '2014-06-23', scale: 45.6, riskLevel: 5 },
-];
+// ===== 天天基金接口：基金排行（获取所有基金） =====
+async function fetchFundRank(page: number = 1, pageSize: number = 20, sortField: string = 'zzf', sortOrder: string = 'desc', fundType: string = 'all'): Promise<{ funds: any[], total: number }> {
+  try {
+    // ft参数：all-全部, gp-股票型, hh-混合型, zq-债券型, zs-指数型
+    const ftMap: Record<string, string> = {
+      'all': 'all',
+      '股票型': 'gp',
+      '混合型': 'hh',
+      '债券型': 'zq',
+      '指数型': 'zs',
+      'ETF': 'etf',
+      'QDII': 'qdii',
+    };
+    const ft = ftMap[fundType] || 'all';
+    
+    const url = `https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=${ft}&rs=&gs=0&sc=${sortField}&st=${sortOrder}&sd=2025-07-02&ed=2026-07-02&qdii=&tabSubtype=,,,,,&pi=${page}&pn=${pageSize}&dx=1`;
+    const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
+    
+    // 解析返回数据：var rankData = {datas:["...","..."],allRecords:19856,...}
+    const datasMatch = text.match(/datas:\[(.*?)\]/);
+    const allRecordsMatch = text.match(/allRecords:(\d+)/);
+    
+    if (!datasMatch) return { funds: [], total: 0 };
+    
+    const datasStr = datasMatch[1];
+    const datas = datasStr.split('","').map(s => s.replace(/^"|"$/g, ''));
+    const total = allRecordsMatch ? parseInt(allRecordsMatch[1]) : 0;
+    
+    const funds = datas.map(data => {
+      const fields = data.split(',');
+      return {
+        code: fields[0],
+        name: fields[1],
+        shortName: fields[2],
+        date: fields[3],
+        nav: parseFloat(fields[4]) || 0,
+        accumulatedNav: parseFloat(fields[5]) || 0,
+        dailyChange: parseFloat(fields[6]) || 0,
+        weekReturn: parseFloat(fields[7]) || 0,
+        monthReturn: parseFloat(fields[8]) || 0,
+        month3Return: parseFloat(fields[9]) || 0,
+        month6Return: parseFloat(fields[10]) || 0,
+        year1Return: parseFloat(fields[11]) || 0,
+        year2Return: parseFloat(fields[12]) || 0,
+        year3Return: parseFloat(fields[13]) || 0,
+        thisYearReturn: parseFloat(fields[14]) || 0,
+        sinceEstablishReturn: parseFloat(fields[15]) || 0,
+        establishDate: fields[16] || '',
+        fee: fields[18] || '',
+      };
+    });
+    
+    return { funds, total };
+  } catch (err) {
+    console.error('fetchFundRank error:', err);
+    return { funds: [], total: 0 };
+  }
+}
 
 // ===== 天天基金接口：实时估值 =====
 async function fetchFundEstimate(code: string): Promise<any> {
@@ -196,7 +216,7 @@ function calcReturn(history: any[], days: number): number {
   return Math.round((latest / old - 1) * 10000) / 100;
 }
 
-// ===== 基金列表接口 =====
+// ===== 基金列表接口（直接调用天天基金API） =====
 app.get('/api/funds/list', async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -204,69 +224,52 @@ app.get('/api/funds/list', async (req, res) => {
     const fundType = req.query.type as string || 'all';
     const sortBy = req.query.sortBy as string || 'year1Return';
     const sortOrder = req.query.sortOrder as string || 'desc';
-    const keyword = req.query.keyword as string;
 
-    let funds = FUND_DATABASE.filter(f => fundType === 'all' || f.type === fundType);
-    if (keyword) {
-      funds = funds.filter(f => f.name.includes(keyword) || f.code.includes(keyword));
-    }
+    // 映射排序字段到天天基金API的排序字段
+    const sortFieldMap: Record<string, string> = {
+      'year1Return': 'zzf', // 近1年收益
+      'year3Return': '3nzf', // 近3年收益
+      'month6Return': '6yzf', // 近6月收益
+      'month3Return': '3yzf', // 近3月收益
+      'month1Return': '1yzf', // 近1月收益
+      'dailyChange': 'rzdf', // 日涨跌幅
+    };
+    const apiSortField = sortFieldMap[sortBy] || 'zzf';
 
-    const startIdx = (page - 1) * size;
-    const pageFunds = funds.slice(startIdx, startIdx + size);
-    
-    const results = await Promise.all(pageFunds.map(async (f) => {
-      const [estimate, history] = await Promise.all([
-        fetchFundEstimate(f.code),
-        fetchFundHistory(f.code, 250),
-      ]);
+    // 直接调用天天基金排行API
+    const { funds: rankFunds, total } = await fetchFundRank(page, size, apiSortField, sortOrder, fundType);
 
-      const nav = estimate?.nav || (history[0] ? parseFloat(history[0].DWJZ) : 0);
-      const dailyChange = estimate?.estimatedChange || 0;
-      const year1Return = calcReturn(history, 250);
-      const year3Return = calcReturn(history, 750);
-      
-      const navHistory = history.slice(0, 250).reverse().map((h: any) => ({
-        date: h.FSRQ,
-        value: parseFloat(h.DWJZ) || 0,
-      }));
-      const riskMetrics = calcRiskMetrics(navHistory);
-
-      return {
-        ...f,
-        nav: Math.round(nav * 10000) / 10000,
-        accumulatedNav: history[0] ? parseFloat(history[0].LJJZ) || 0 : 0,
-        dailyChange: Math.round(dailyChange * 100) / 100,
-        year1Return,
-        year3Return,
-        yearlyReturn: year1Return,
-        estimatedNav: estimate?.estimatedNav,
-        estimatedChange: estimate?.estimatedChange,
-        riskMetrics,
-        source: 'eastmoney',
-      };
+    // 转换为前端需要的格式
+    const funds = rankFunds.map(f => ({
+      code: f.code,
+      name: f.name,
+      type: '混合型', // 天天基金API没有返回类型，暂时默认
+      manager: '--',
+      company: '--',
+      establishDate: f.establishDate,
+      scale: 0,
+      riskLevel: 3,
+      nav: f.nav,
+      accumulatedNav: f.accumulatedNav,
+      dailyChange: f.dailyChange,
+      year1Return: f.year1Return,
+      year3Return: f.year3Return,
+      month6Return: f.month6Return,
+      month3Return: f.month3Return,
+      month1Return: f.month1Return,
+      thisYearReturn: f.thisYearReturn,
+      sinceEstablishReturn: f.sinceEstablishReturn,
+      yearlyReturn: f.year1Return,
+      riskMetrics: {
+        maxDrawdown: 0,
+        volatility: 0,
+        sharpeRatio: 0,
+        alpha: 0,
+      },
+      source: '1234567',
     }));
 
-    const sortFieldMap: Record<string, string> = {
-      'year1Return': 'year1Return',
-      'year3Return': 'year3Return',
-      'scale': 'scale',
-      'maxDrawdown': 'riskMetrics.maxDrawdown',
-      'sharpeRatio': 'riskMetrics.sharpeRatio',
-    };
-    const sortField = sortFieldMap[sortBy] || 'year1Return';
-    
-    results.sort((a: any, b: any) => {
-      let aVal = a;
-      let bVal = b;
-      for (const key of sortField.split('.')) {
-        aVal = aVal?.[key];
-        bVal = bVal?.[key];
-      }
-      const diff = (bVal || 0) - (aVal || 0);
-      return sortOrder === 'desc' ? diff : -diff;
-    });
-
-    res.json({ funds: results, total: funds.length, source: 'eastmoney' });
+    res.json({ funds, total, source: '1234567' });
   } catch (err) {
     console.error('Fund list error:', err);
     res.json({ funds: [], total: 0, source: 'error', error: String(err) });
