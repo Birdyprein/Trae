@@ -39,9 +39,9 @@
   background: rgb(35, 35, 55);
 }
 
-/* 玻璃态导航栏 - 不透明 */
+/* 玻璃态导航栏 - 纯黑不透明 */
 .glass-nav {
-  background: rgb(5, 5, 15);
+  background: rgb(0, 0, 0);
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
