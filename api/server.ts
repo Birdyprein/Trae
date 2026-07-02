@@ -704,15 +704,212 @@ app.get('/api/benchmarks/:code/history', async (req, res) => {
 });
 
 // ===== 组合分析接口 =====
-app.post('/api/analysis/portfolio', (req, res) => {
+app.post('/api/analysis/portfolio', async (req, res) => {
   const { fundIds } = req.body;
-  res.json({
-    industryDistribution: [],
-    holdingsOverlap: { overlappedStocks: [], overlapRate: 0 },
-    styleExposure: { marketCap: '--', style: '--', score: 0 },
-    portfolioRisk: { estimatedMaxDrawdown: 0, estimatedVolatility: 0, diversificationScore: 0 },
-    source: 'not_implemented',
-  });
+  
+  if (!fundIds || !Array.isArray(fundIds) || fundIds.length === 0) {
+    return res.json({
+      industryDistribution: [],
+      holdingsOverlap: { overlappedStocks: [], overlapRate: 0 },
+      styleExposure: { marketCap: '--', style: '--', score: 0 },
+      portfolioRisk: { estimatedMaxDrawdown: 0, estimatedVolatility: 0, diversificationScore: 0 },
+      source: 'error',
+    });
+  }
+
+  try {
+    // 获取所有基金的详细信息
+    const fundDetails = await Promise.all(
+      fundIds.map(async (code: string) => {
+        const pingzhong = await fetchPingzhongData(code);
+        return { code, pingzhong };
+      })
+    );
+
+    // 1. 行业分布分析
+    const industryMap = new Map<string, number>();
+    fundDetails.forEach(({ pingzhong }) => {
+      if (pingzhong?.assetAllocation) {
+        const stockRatio = pingzhong.assetAllocation.stock || 0;
+        // 简化处理：将股票配置按比例分配
+        if (stockRatio > 0) {
+          industryMap.set('股票', (industryMap.get('股票') || 0) + stockRatio / fundIds.length);
+        }
+        const bondRatio = pingzhong.assetAllocation.bond || 0;
+        if (bondRatio > 0) {
+          industryMap.set('债券', (industryMap.get('债券') || 0) + bondRatio / fundIds.length);
+        }
+        const cashRatio = pingzhong.assetAllocation.cash || 0;
+        if (cashRatio > 0) {
+          industryMap.set('现金', (industryMap.get('现金') || 0) + cashRatio / fundIds.length);
+        }
+      }
+    });
+
+    const industryDistribution = Array.from(industryMap.entries()).map(([industry, ratio]) => ({
+      industry,
+      ratio: Math.round(ratio * 100) / 100,
+    }));
+
+    // 2. 重仓股重叠分析
+    const stockHoldings = new Map<string, { funds: string[]; totalRatio: number }>();
+    fundDetails.forEach(({ code, pingzhong }) => {
+      if (pingzhong?.stockCodes && Array.isArray(pingzhong.stockCodes)) {
+        pingzhong.stockCodes.forEach((stockCode: string) => {
+          if (!stockHoldings.has(stockCode)) {
+            stockHoldings.set(stockCode, { funds: [], totalRatio: 0 });
+          }
+          const holding = stockHoldings.get(stockCode)!;
+          holding.funds.push(code);
+          holding.totalRatio += 1; // 简化：每只股票计为1份
+        });
+      }
+    });
+
+    const overlappedStocks = Array.from(stockHoldings.entries())
+      .filter(([_, data]) => data.funds.length > 1)
+      .map(([stockCode, data]) => ({
+        stockCode,
+        stockName: `股票${stockCode}`,
+        funds: data.funds,
+        totalRatio: Math.round((data.totalRatio / fundIds.length) * 100) / 100,
+      }))
+      .sort((a, b) => b.totalRatio - a.totalRatio);
+
+    const overlapRate = overlappedStocks.length > 0
+      ? Math.round((overlappedStocks.length / stockHoldings.size) * 10000) / 100
+      : 0;
+
+    // 3. 风格暴露分析
+    let totalStock = 0;
+    let totalBond = 0;
+    fundDetails.forEach(({ pingzhong }) => {
+      if (pingzhong?.assetAllocation) {
+        totalStock += pingzhong.assetAllocation.stock || 0;
+        totalBond += pingzhong.assetAllocation.bond || 0;
+      }
+    });
+
+    const avgStock = totalStock / fundIds.length;
+    const avgBond = totalBond / fundIds.length;
+
+    let marketCap: 'large' | 'mid' | 'small' | 'mixed' = 'mixed';
+    let style: 'value' | 'growth' | 'balanced' = 'balanced';
+    let score = 0;
+
+    // 根据股票和债券比例判断风格
+    if (avgStock > 70) {
+      style = 'growth';
+      score = 80;
+    } else if (avgStock < 30) {
+      style = 'value';
+      score = 40;
+    } else {
+      style = 'balanced';
+      score = 60;
+    }
+
+    // 根据规模判断市值风格
+    if (avgStock > 60) {
+      marketCap = 'large';
+    } else if (avgStock > 40) {
+      marketCap = 'mid';
+    } else {
+      marketCap = 'small';
+    }
+
+    // 4. 组合风险分析 - 使用 pingzhongdata 的净值走势
+    const allNavHistories = await Promise.all(
+      fundDetails.map(async ({ code, pingzhong }) => {
+        // 优先使用 pingzhongdata 的净值走势
+        if (pingzhong?.netWorth && Array.isArray(pingzhong.netWorth)) {
+          return pingzhong.netWorth.slice(-100).map((item: any) => parseFloat(item.y) || 0);
+        }
+        // 备选：尝试从历史净值获取
+        const history = await fetchFundHistory(code, 100);
+        if (history.length > 0) {
+          return history.map((h: any) => parseFloat(h.DWJZ) || 0);
+        }
+        return [];
+      })
+    );
+
+    // 计算组合平均净值走势
+    const validHistories = allNavHistories.filter(h => h.length > 0);
+    let maxDrawdown = 0;
+    let volatility = 0;
+    
+    if (validHistories.length > 0) {
+      const maxLen = Math.max(...validHistories.map(h => h.length));
+      const portfolioNav: number[] = [];
+      for (let i = 0; i < maxLen; i++) {
+        let sum = 0;
+        let count = 0;
+        validHistories.forEach(nav => {
+          if (i < nav.length) {
+            sum += nav[i];
+            count++;
+          }
+        });
+        portfolioNav.push(count > 0 ? sum / count : 0);
+      }
+
+      // 计算最大回撤
+      let peak = portfolioNav[0] || 0;
+      for (const value of portfolioNav) {
+        if (value > peak) peak = value;
+        const drawdown = (value - peak) / peak;
+        if (drawdown < maxDrawdown) maxDrawdown = drawdown;
+      }
+
+      // 计算波动率
+      const returns: number[] = [];
+      for (let i = 1; i < portfolioNav.length; i++) {
+        if (portfolioNav[i - 1] > 0) {
+          returns.push((portfolioNav[i] - portfolioNav[i - 1]) / portfolioNav[i - 1]);
+        }
+      }
+
+      const avgReturn = returns.length > 0 ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+      const variance = returns.length > 0
+        ? returns.reduce((sum, r) => sum + (r - avgReturn) ** 2, 0) / returns.length
+        : 0;
+      volatility = Math.sqrt(variance) * Math.sqrt(252) * 100;
+    }
+
+    // 分散度评分：基于基金数量和重叠率
+    const diversificationScore = Math.min(100, Math.round(
+      (100 - overlapRate) * (fundIds.length / 5) * 0.5
+    ));
+
+    res.json({
+      industryDistribution,
+      holdingsOverlap: {
+        overlappedStocks: overlappedStocks.slice(0, 10),
+        overlapRate,
+      },
+      styleExposure: {
+        marketCap,
+        style,
+        score: Math.round(score * 100) / 100,
+      },
+      portfolioRisk: {
+        estimatedMaxDrawdown: Math.round(maxDrawdown * 10000) / 100,
+        estimatedVolatility: Math.round(volatility * 100) / 100,
+        diversificationScore,
+      },
+      source: 'calculated',
+    });
+  } catch (err) {
+    console.error('Portfolio analysis error:', err);
+    res.json({
+      industryDistribution: [],
+      holdingsOverlap: { overlappedStocks: [], overlapRate: 0 },
+      styleExposure: { marketCap: '--', style: '--', score: 0 },
+      portfolioRisk: { estimatedMaxDrawdown: 0, estimatedVolatility: 0, diversificationScore: 0 },
+      source: 'error',
+    });
+  }
 });
 
 app.listen(PORT, () => {
