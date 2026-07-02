@@ -141,7 +141,7 @@ export default function FundAdvancedFilter() {
             type="checkbox"
             checked={advanced.excludeNewFunds ?? false}
             onChange={(e) => setAdvanced({ excludeNewFunds: e.target.checked })}
-            className="accent-gold-400"
+            className="glass-input"
           />
           <span className="text-xs text-secondary">排除新基金（&lt;1年）</span>
         </label>
@@ -150,7 +150,7 @@ export default function FundAdvancedFilter() {
             type="checkbox"
             checked={advanced.excludeSmallScale ?? false}
             onChange={(e) => setAdvanced({ excludeSmallScale: e.target.checked })}
-            className="accent-gold-400"
+            className="glass-input"
           />
           <span className="text-xs text-secondary">排除迷你基金（&lt;2亿）</span>
         </label>

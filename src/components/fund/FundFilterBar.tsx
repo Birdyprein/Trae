@@ -64,7 +64,7 @@ export default function FundFilterBar() {
               className="glass-input pl-8 pr-7 py-1.5 text-xs appearance-none cursor-pointer"
             >
               {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value} className="bg-surface-data text-white">
+                <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
               ))}
