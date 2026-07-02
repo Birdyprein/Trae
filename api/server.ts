@@ -7,6 +7,7 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
+// ===== HTTP请求工具（带重试） =====
 async function httpGet(url: string, headers?: Record<string, string>): Promise<string> {
   const maxRetries = 3;
   let lastError: Error | null = null;
@@ -19,13 +20,15 @@ async function httpGet(url: string, headers?: Record<string, string>): Promise<s
       return await res.text();
     } catch (err) {
       lastError = err as Error;
-      console.log(`httpGet retry ${i + 1}/${maxRetries} failed for ${url}`);
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+      }
     }
   }
   throw lastError;
 }
 
+// ===== JSONP解析 =====
 function parseJsonp(text: string): any {
   const match = text.match(/jsonpgz\(([\s\S]*?)\);?$/);
   if (match) {
@@ -38,6 +41,7 @@ function parseJsonp(text: string): any {
   return null;
 }
 
+// ===== 精选基金数据库 =====
 const FUND_DATABASE: { code: string; name: string; type: string; manager: string; company: string; establishDate: string; scale: number; riskLevel: number }[] = [
   { code: '110011', name: '易方达优质精选混合', type: '股票型', manager: '张坤', company: '易方达基金', establishDate: '2007-12-18', scale: 285.6, riskLevel: 5 },
   { code: '270002', name: '广发小盘成长混合', type: '股票型', manager: '刘格菘', company: '广发基金', establishDate: '2005-02-02', scale: 98.3, riskLevel: 5 },
@@ -76,6 +80,7 @@ const FUND_DATABASE: { code: string; name: string; type: string; manager: string
   { code: '000409', name: '鹏华环保产业股票', type: '股票型', manager: '孟昊', company: '鹏华基金', establishDate: '2014-06-23', scale: 45.6, riskLevel: 5 },
 ];
 
+// ===== 天天基金接口：实时估值 =====
 async function fetchFundEstimate(code: string): Promise<any> {
   try {
     const url = `https://fundgz.1234567.com.cn/js/${code}.js`;
@@ -100,22 +105,17 @@ async function fetchFundEstimate(code: string): Promise<any> {
   return null;
 }
 
+// ===== 东方财富接口：历史净值 =====
 async function fetchFundHistory(code: string, pageSize: number = 500): Promise<any[]> {
   try {
     const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=${pageSize}`;
-    console.log(`Fetching history for ${code}...`);
     const text = await httpGet(url, { Referer: `https://fund.eastmoney.com/${code}.html` });
-    console.log(`Response length: ${text.length}`);
     const data = JSON.parse(text);
-    const result = data.Data?.LSJZList || [];
-    console.log(`Parsed ${result.length} records`);
-    return result;
-  } catch (err) {
-    console.error(`fetchFundHistory(${code}) error:`, err);
-    return [];
-  }
+    return data.Data?.LSJZList || [];
+  } catch { return []; }
 }
 
+// ===== 东方财富接口：基金详情(pingzhongdata) =====
 async function fetchPingzhongData(code: string): Promise<any> {
   try {
     const url = `https://fund.eastmoney.com/pingzhongdata/${code}.js`;
@@ -152,6 +152,7 @@ async function fetchPingzhongData(code: string): Promise<any> {
   } catch { return null; }
 }
 
+// ===== 计算风险指标 =====
 function calcRiskMetrics(history: { date: string; value: number }[]): { maxDrawdown: number; volatility: number; sharpeRatio: number; alpha: number } {
   if (history.length < 2) return { maxDrawdown: 0, volatility: 0, sharpeRatio: 0, alpha: 0 };
   
@@ -186,7 +187,8 @@ function calcRiskMetrics(history: { date: string; value: number }[]): { maxDrawd
   };
 }
 
-function calcYearlyReturn(history: any[], days: number): number {
+// ===== 计算区间收益率 =====
+function calcReturn(history: any[], days: number): number {
   if (history.length < days) return 0;
   const latest = parseFloat(history[0].DWJZ) || 0;
   const old = parseFloat(history[days - 1]?.DWJZ) || 0;
@@ -194,6 +196,7 @@ function calcYearlyReturn(history: any[], days: number): number {
   return Math.round((latest / old - 1) * 10000) / 100;
 }
 
+// ===== 基金列表接口 =====
 app.get('/api/funds/list', async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -219,8 +222,8 @@ app.get('/api/funds/list', async (req, res) => {
 
       const nav = estimate?.nav || (history[0] ? parseFloat(history[0].DWJZ) : 0);
       const dailyChange = estimate?.estimatedChange || 0;
-      const year1Return = calcYearlyReturn(history, 250);
-      const year3Return = calcYearlyReturn(history, 750);
+      const year1Return = calcReturn(history, 250);
+      const year3Return = calcReturn(history, 750);
       
       const navHistory = history.slice(0, 250).reverse().map((h: any) => ({
         date: h.FSRQ,
@@ -239,7 +242,7 @@ app.get('/api/funds/list', async (req, res) => {
         estimatedNav: estimate?.estimatedNav,
         estimatedChange: estimate?.estimatedChange,
         riskMetrics,
-        source: 'real',
+        source: 'eastmoney',
       };
     }));
 
@@ -263,13 +266,14 @@ app.get('/api/funds/list', async (req, res) => {
       return sortOrder === 'desc' ? diff : -diff;
     });
 
-    res.json({ funds: results, total: funds.length, source: 'real' });
+    res.json({ funds: results, total: funds.length, source: 'eastmoney' });
   } catch (err) {
     console.error('Fund list error:', err);
     res.json({ funds: [], total: 0, source: 'error', error: String(err) });
   }
 });
 
+// ===== 基金搜索接口 =====
 app.get('/api/funds/search', async (req, res) => {
   const keyword = req.query.keyword as string;
   if (!keyword) { res.json({ funds: [] }); return; }
@@ -286,12 +290,12 @@ app.get('/api/funds/search', async (req, res) => {
       riskLevel: 3, manager: '--', company: '--', establishDate: '--', scale: 0,
     }));
     res.json({ funds, source: 'eastmoney' });
-  } catch (err) {
-    console.error('Search error:', err);
+  } catch {
     res.json({ funds: [], source: 'error' });
   }
 });
 
+// ===== 基金详情接口 =====
 app.get('/api/funds/:code/detail', async (req, res) => {
   const code = req.params.code;
   try {
@@ -314,11 +318,11 @@ app.get('/api/funds/:code/detail', async (req, res) => {
     const riskMetrics = calcRiskMetrics(navHistory);
 
     const performance = pingzhong?.performance || {
-      month1: calcYearlyReturn(history, 22),
-      month3: calcYearlyReturn(history, 66),
-      month6: calcYearlyReturn(history, 132),
-      year1: calcYearlyReturn(history, 250),
-      year2: calcYearlyReturn(history, 500),
+      month1: calcReturn(history, 22),
+      month3: calcReturn(history, 66),
+      month6: calcReturn(history, 132),
+      year1: calcReturn(history, 250),
+      year2: calcReturn(history, 500),
       year3: 0, year5: 0, thisYear: 0, sinceEstablish: 0,
     };
 
@@ -356,7 +360,7 @@ app.get('/api/funds/:code/detail', async (req, res) => {
       topHoldings: pingzhong?.stockHoldings || [],
       managerDetail,
       fees: { managementFee: 0, custodyFee: 0, purchaseFee: 0, redemptionFee: 0 },
-      source: 'real',
+      source: 'eastmoney',
     };
 
     res.json(detail);
@@ -386,6 +390,7 @@ app.get('/api/funds/:code/detail', async (req, res) => {
   }
 });
 
+// ===== 基金净值历史接口 =====
 app.get('/api/funds/:code/nav', async (req, res) => {
   const code = req.params.code;
   const days = parseInt(req.query.days as string) || 365;
@@ -405,68 +410,112 @@ app.get('/api/funds/:code/nav', async (req, res) => {
   res.json({ data: [], source: 'empty' });
 });
 
+// ===== 市场指数接口（天天基金ETF估值） =====
 app.get('/api/market/indices', async (_req, res) => {
   try {
-    const secids = '1.000001,0.399001,0.399006,1.000688,100.HSI,100.NDX';
-    const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&invt=2&fields=f2,f3,f4,f12,f14,f5,f6,f15,f16,f17,f18&secids=${secids}&_=${Date.now()}`;
-    const text = await httpGet(url, { Referer: 'https://quote.eastmoney.com/' });
-    const data = JSON.parse(text);
-    const indices = (data.data?.diff || []).map((item: any) => ({
-      code: item.f12,
-      name: item.f14,
-      value: item.f2,
-      change: item.f4,
-      changePercent: item.f3,
-      high: item.f15,
-      low: item.f16,
-      open: item.f17,
-      prevClose: item.f18,
+    // 使用天天基金ETF估值数据
+    const etfCodes = [
+      { code: '510300', name: '沪深300ETF' },
+      { code: '510050', name: '上证50ETF' },
+      { code: '159915', name: '创业板ETF' },
+      { code: '510500', name: '中证500ETF' },
+      { code: '159949', name: '创业板50ETF' },
+      { code: '513100', name: '纳指ETF' },
+    ];
+    
+    const results = await Promise.all(etfCodes.map(async (etf) => {
+      const estimate = await fetchFundEstimate(etf.code);
+      if (estimate) {
+        return {
+          code: etf.code,
+          name: estimate.name || etf.name,
+          value: estimate.nav,
+          change: estimate.estimatedNav - estimate.nav,
+          changePercent: estimate.estimatedChange,
+          high: 0,
+          low: 0,
+          open: 0,
+          prevClose: estimate.nav,
+        };
+      }
+      return null;
     }));
-    res.json({ success: true, data: indices, source: 'eastmoney' });
+    
+    const indices = results.filter(r => r !== null);
+    res.json({ success: true, data: indices, source: '1234567' });
   } catch (err) {
     console.error('Market indices error:', err);
     res.json({ success: false, data: [], source: 'error' });
   }
 });
 
+// ===== 指数历史K线（天天基金历史净值） =====
 app.get('/api/market/index-history', async (req, res) => {
   const days = parseInt(req.query.days as string) || 30;
   try {
-    const klt = 101;
-    const ftd = new Date();
-    ftd.setDate(ftd.getDate() - days);
-    const startDate = ftd.toISOString().slice(0, 10).replace(/-/g, '');
-    const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.000001&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57&klt=${klt}&fqt=0&beg=${startDate}&end=20500101&_=${Date.now()}`;
-    const text = await httpGet(url, { Referer: 'https://quote.eastmoney.com/' });
+    // 使用沪深300ETF的历史净值作为指数走势
+    const code = '510300';
+    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=${days}`;
+    const text = await httpGet(url, { Referer: `https://fund.eastmoney.com/${code}.html` });
     const data = JSON.parse(text);
-    const klines = data.data?.klines || [];
-    const history = klines.map((k: string) => {
-      const parts = k.split(',');
-      return { date: parts[0], value: parseFloat(parts[2]) };
-    });
-    res.json({ success: true, data: history, source: 'eastmoney' });
+    const history = (data.Data?.LSJZList || []).map((item: any) => ({
+      date: item.FSRQ,
+      value: parseFloat(item.DWJZ) || 0,
+    })).reverse();
+    res.json({ success: true, data: history, source: '1234567' });
   } catch {
     res.json({ success: false, data: [], source: 'error' });
   }
 });
 
+// ===== 板块行情接口（天天基金行业主题ETF） =====
 app.get('/api/market/sectors', async (_req, res) => {
   try {
-    const url = `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=20&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:2&fields=f12,f14,f3,f5,f6&_=${Date.now()}`;
-    const text = await httpGet(url, { Referer: 'https://quote.eastmoney.com/' });
-    const data = JSON.parse(text);
-    const sectors = (data.data?.diff || []).map((item: any) => ({
-      code: item.f12,
-      name: item.f14,
-      change: parseFloat(item.f3) || 0,
-      volume: (parseFloat(item.f6) || 0) / 100000000,
+    // 使用行业主题ETF的估值数据模拟板块行情
+    const sectorETFs = [
+      { code: '512690', name: '酒ETF' },
+      { code: '512480', name: '半导体ETF' },
+      { code: '512800', name: '银行ETF' },
+      { code: '515030', name: '新能源车ETF' },
+      { code: '516160', name: '新能源ETF' },
+      { code: '512660', name: '军工ETF' },
+      { code: '512200', name: '房地产ETF' },
+      { code: '512170', name: '医疗ETF' },
+      { code: '515050', name: '5GETF' },
+      { code: '515880', name: '通信ETF' },
+      { code: '512980', name: '传媒ETF' },
+      { code: '512580', name: '环保ETF' },
+      { code: '512510', name: '食品饮料ETF' },
+      { code: '512400', name: '有色金属ETF' },
+      { code: '512280', name: '计算机ETF' },
+      { code: '512950', name: '基建ETF' },
+      { code: '512880', name: '证券ETF' },
+      { code: '515220', name: '煤炭ETF' },
+      { code: '512120', name: '医药ETF' },
+      { code: '515170', name: '食品ETF' },
+    ];
+    
+    const results = await Promise.all(sectorETFs.map(async (etf) => {
+      const estimate = await fetchFundEstimate(etf.code);
+      if (estimate) {
+        return {
+          code: etf.code,
+          name: estimate.name || etf.name,
+          change: estimate.estimatedChange,
+          volume: 0,
+        };
+      }
+      return null;
     }));
-    res.json({ success: true, data: sectors, source: 'eastmoney' });
+    
+    const sectors = results.filter(r => r !== null).sort((a, b) => b.change - a.change);
+    res.json({ success: true, data: sectors, source: '1234567' });
   } catch {
     res.json({ success: false, data: [], source: 'error' });
   }
 });
 
+// ===== 基准历史接口（天天基金指数ETF历史净值） =====
 app.get('/api/benchmarks/:code/history', async (req, res) => {
   const code = req.params.code;
   const days = parseInt(req.query.days as string) || 365;
@@ -475,24 +524,30 @@ app.get('/api/benchmarks/:code/history', async (req, res) => {
       res.json({ success: false, data: [], source: 'not_supported' });
       return;
     }
-    const secid = code === '000300' ? '1.000300' : code === '000905' ? '1.000905' : '1.000852';
-    const ftd = new Date();
-    ftd.setDate(ftd.getDate() - days);
-    const startDate = ftd.toISOString().slice(0, 10).replace(/-/g, '');
-    const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57&klt=101&fqt=0&beg=${startDate}&end=20500101&_=${Date.now()}`;
-    const text = await httpGet(url, { Referer: 'https://quote.eastmoney.com/' });
+    // 映射指数代码到对应的ETF
+    const indexETFMap: Record<string, string> = {
+      '000300': '510300', // 沪深300
+      '000905': '510500', // 中证500
+      '000852': '159949', // 中证1000
+      '000016': '510050', // 上证50
+      '399006': '159915', // 创业板指
+    };
+    const etfCode = indexETFMap[code] || '510300';
+    
+    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${etfCode}&pageIndex=1&pageSize=${days}`;
+    const text = await httpGet(url, { Referer: `https://fund.eastmoney.com/${etfCode}.html` });
     const data = JSON.parse(text);
-    const klines = data.data?.klines || [];
-    const history = klines.map((k: string) => {
-      const parts = k.split(',');
-      return { date: parts[0], value: parseFloat(parts[2]) };
-    });
-    res.json({ success: true, data: history, source: 'eastmoney' });
+    const history = (data.Data?.LSJZList || []).map((item: any) => ({
+      date: item.FSRQ,
+      value: parseFloat(item.DWJZ) || 0,
+    })).reverse();
+    res.json({ success: true, data: history, source: '1234567' });
   } catch {
     res.json({ success: false, data: [], source: 'error' });
   }
 });
 
+// ===== 组合分析接口 =====
 app.post('/api/analysis/portfolio', (req, res) => {
   const { fundIds } = req.body;
   res.json({
@@ -506,5 +561,5 @@ app.post('/api/analysis/portfolio', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`API server running at http://localhost:${PORT}`);
-  console.log('Data sources: fundgz.1234567.com.cn, api.fund.eastmoney.com, push2.eastmoney.com');
+  console.log('Data sources: fundgz.1234567.com.cn, api.fund.eastmoney.com, push2.eastmoney.com (HTTP)');
 });
