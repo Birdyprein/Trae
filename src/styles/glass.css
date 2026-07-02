@@ -101,50 +101,54 @@
   border-color: rgba(212, 168, 83, 0.4);
 }
 
-/* 玻璃态输入框 */
+/* 玻璃态输入框 - 与主背景融合 */
 .glass-input {
-  background: rgba(30, 30, 50, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   color: #FFFFFF;
   transition: all 0.2s ease;
 }
 
 .glass-input::placeholder {
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .glass-input:focus {
   outline: none;
-  border-color: rgba(212, 168, 83, 0.5);
-  background: rgba(40, 40, 60, 0.7);
-  box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.15);
+  border-color: rgba(212, 168, 83, 0.35);
+  background: transparent;
+  box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.1);
 }
 
-/* 下拉选择框适配 */
+/* 下拉选择框适配 - 弹出层保持深色 */
 .glass-input option {
-  background: rgb(25, 25, 45);
+  background: rgb(15, 15, 30);
   color: #FFFFFF;
   padding: 8px 12px;
 }
 
 .glass-input option:checked {
-  background: rgba(212, 168, 83, 0.2);
+  background: rgba(212, 168, 83, 0.15);
 }
 
 .glass-input optgroup {
-  background: rgb(20, 20, 40);
-  color: rgba(255, 255, 255, 0.6);
+  background: rgb(15, 15, 30);
+  color: rgba(255, 255, 255, 0.5);
 }
 
-/* 复选框适配 */
+/* 复选框适配 - 纯玻璃态 */
 .glass-input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
-  background: rgba(30, 30, 50, 0.6);
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -152,8 +156,8 @@
 }
 
 .glass-input[type="checkbox"]:checked {
-  background: rgba(212, 168, 83, 0.25);
-  border-color: rgba(212, 168, 83, 0.6);
+  background: transparent;
+  border-color: rgba(212, 168, 83, 0.5);
 }
 
 .glass-input[type="checkbox"]:checked::after {
@@ -169,17 +173,19 @@
 }
 
 .glass-input[type="checkbox"]:hover {
-  border-color: rgba(212, 168, 83, 0.4);
+  border-color: rgba(212, 168, 83, 0.35);
 }
 
-/* 单选框适配 */
+/* 单选框适配 - 纯玻璃态 */
 .glass-input[type="radio"] {
   appearance: none;
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
-  background: rgba(30, 30, 50, 0.6);
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -187,8 +193,8 @@
 }
 
 .glass-input[type="radio"]:checked {
-  background: rgba(212, 168, 83, 0.25);
-  border-color: rgba(212, 168, 83, 0.6);
+  background: transparent;
+  border-color: rgba(212, 168, 83, 0.5);
 }
 
 .glass-input[type="radio"]:checked::after {
@@ -204,7 +210,7 @@
 }
 
 .glass-input[type="radio"]:hover {
-  border-color: rgba(212, 168, 83, 0.4);
+  border-color: rgba(212, 168, 83, 0.35);
 }
 
 /* 玻璃态标签/徽章 */
