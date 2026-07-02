@@ -190,16 +190,14 @@ async function fetchAccumulatedNavFromMain(code: string): Promise<number> {
     const url = `https://fund.eastmoney.com/${code}.html`;
     const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
     
-    // 提取累计净值：累计净值：<span>5.7696</span>
-    const match = text.match(/累计净值[：:]\s*<[^>]*>([\d.]+)</);
+    // 提取累计净值：使用更宽松的正则表达式，允许换行符和空格
+    // 匹配：累计净值</a>...<span class="...">5.7696
+    const match = text.match(/累计净值[\s\S]*?<span[^>]*>([\d.]+)<\/span>/);
     if (match) {
-      return parseFloat(match[1]) || 0;
-    }
-    
-    // 尝试其他格式
-    const match2 = text.match(/累计净值<\/[^>]*>[^<]*<[^>]*>([\d.]+)/);
-    if (match2) {
-      return parseFloat(match2[1]) || 0;
+      const value = parseFloat(match[1]);
+      if (value > 0) {
+        return value;
+      }
     }
     
     return 0;
