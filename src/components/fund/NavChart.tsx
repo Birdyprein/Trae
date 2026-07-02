@@ -64,16 +64,26 @@ export default function NavChart({ fundNav, benchmarks, loading }: NavChartProps
 
   const merged = useMemo(() => {
     const map = new Map<string, Record<string, number | string>>();
-    fundNav.forEach((p) => {
-      const entry = map.get(p.date) ?? { date: p.date };
-      entry.value = p.value;
-      map.set(p.date, entry);
+    // 先收集所有日期（包括基金净值和基准数据的日期）
+    const allDates = new Set<string>();
+    fundNav.forEach((p) => allDates.add(p.date));
+    benchmarks.forEach((bh) => {
+      bh.data.forEach((p) => allDates.add(p.date));
     });
+    // 初始化所有日期条目
+    allDates.forEach((date) => {
+      map.set(date, { date });
+    });
+    // 填充基金净值
+    fundNav.forEach((p) => {
+      const entry = map.get(p.date);
+      if (entry) entry.value = p.value;
+    });
+    // 填充基准数据
     benchmarks.forEach((bh) => {
       bh.data.forEach((p) => {
-        const entry = map.get(p.date) ?? { date: p.date };
-        entry[bh.benchmark.code] = p.value;
-        map.set(p.date, entry);
+        const entry = map.get(p.date);
+        if (entry) entry[bh.benchmark.code] = p.value;
       });
     });
     return Array.from(map.values()).sort((a, b) =>
@@ -102,7 +112,7 @@ export default function NavChart({ fundNav, benchmarks, loading }: NavChartProps
     setHidden((prev) => ({ ...prev, [code]: !prev[code] }));
   };
 
-  const hasData = fundNav.length > 0;
+  const hasData = fundNav.length > 0 || benchmarks.length > 0;
 
   return (
     <div className="glass-card p-4 sm:p-6">

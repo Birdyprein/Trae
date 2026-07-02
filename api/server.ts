@@ -845,9 +845,50 @@ app.get('/api/benchmarks/:code/history', async (req, res) => {
     };
     const etfCode = indexETFMap[code] || '510300';
     
-    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${etfCode}&pageIndex=1&pageSize=${days}`;
+    // 尝试从 pingzhongdata.js 获取数据（更可靠）
+    try {
+      const pingzhongUrl = `https://fund.eastmoney.com/pingzhongdata/${etfCode}.js`;
+      const pingzhongText = await httpGet(pingzhongUrl, { Referer: `https://fund.eastmoney.com/${etfCode}.html` });
+      
+      // 提取 Data_netWorthTrend 变量
+      const netWorthMatch = pingzhongText.match(/var\s+Data_netWorthTrend\s*=\s*(\[[\s\S]*?\]);/);
+      if (netWorthMatch) {
+        const netWorthData = JSON.parse(netWorthMatch[1]);
+        
+        // 计算截止日期（days天前）
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - days);
+        const cutoffTimestamp = cutoffDate.getTime();
+        
+        // 转换数据格式：{x: timestamp, y: value} -> {date, value}
+        const history = netWorthData
+          .filter((item: any) => item.x >= cutoffTimestamp)
+          .map((item: any) => ({
+            date: new Date(item.x).toISOString().split('T')[0],
+            value: item.y,
+          }));
+        
+        if (history.length > 0) {
+          res.json({ success: true, data: history, source: 'pingzhongdata' });
+          return;
+        }
+      }
+    } catch (err) {
+      console.log(`Failed to fetch benchmark from pingzhongdata for ${code}, trying fallback`);
+    }
+    
+    // 备选方案：使用 lsjz API
+    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${etfCode}&pageIndex=1&pageSize=${days}&callback=jQuery112409`;
     const text = await httpGet(url, { Referer: `https://fund.eastmoney.com/${etfCode}.html` });
-    const data = JSON.parse(text);
+    
+    // 解析JSONP响应
+    const jsonpMatch = text.match(/jQuery112409\(([\s\S]*)\)/);
+    if (!jsonpMatch) {
+      res.json({ success: false, data: [], source: 'parse_error' });
+      return;
+    }
+    
+    const data = JSON.parse(jsonpMatch[1]);
     const history = (data.Data?.LSJZList || []).map((item: any) => ({
       date: item.FSRQ,
       value: parseFloat(item.DWJZ) || 0,
