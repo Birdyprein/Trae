@@ -154,10 +154,20 @@ async function fetchFundEstimate(code: string): Promise<any> {
 async function fetchFundHistory(code: string, pageSize: number = 500): Promise<any[]> {
   try {
     const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=${pageSize}`;
-    const text = await httpGet(url, { Referer: `https://fund.eastmoney.com/${code}.html` });
+    const text = await httpGet(url, {
+      Referer: `https://fund.eastmoney.com/${code}.html`,
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Encoding': 'identity',
+    });
+    console.log(`fetchFundHistory for ${code}: response length = ${text.length}, first 200: ${text.substring(0, 200)}`);
     const data = JSON.parse(text);
-    return data.Data?.LSJZList || [];
-  } catch { return []; }
+    const list = data.Data?.LSJZList || [];
+    console.log(`fetchFundHistory for ${code}: got ${list.length} records`);
+    return list;
+  } catch (err) {
+    console.error(`fetchFundHistory error for ${code}:`, err);
+    return [];
+  }
 }
 
 // ===== 东方财富接口：基金详情(pingzhongdata) =====
@@ -165,41 +175,117 @@ async function fetchPingzhongData(code: string): Promise<any> {
   try {
     const url = `https://fund.eastmoney.com/pingzhongdata/${code}.js`;
     const text = await httpGet(url, { Referer: `https://fund.eastmoney.com/${code}.html` });
-    const getData = (varName: string): any => {
-      const regex = new RegExp(`var ${varName} = ([\\s\\S]*?);`);
+    
+    // 提取变量的辅助函数
+    const extractVar = (varName: string): any => {
+      const regex = new RegExp(`var\\s+${varName}\\s*=\\s*([\\s\\S]*?);`, 'm');
       const m = text.match(regex);
       if (!m) return null;
-      try { return eval(m[1]); } catch { return null; }
+      const val = m[1].trim();
+      try { return eval(val); } catch { return val; }
     };
-    return {
-      name: getData('fS_name'),
-      code: getData('fS_code'),
-      manager: getData('currentFundManager')?.[0],
-      company: getData('jjgs'),
-      establishDate: getData('fund_setupDate'),
-      scale: parseFloat(getData('fund_endNetAsset') || 0),
-      netWorth: getData('Data_netWorthTrend'),
+    
+    // 获取基金经理信息
+    const managerData = extractVar('Data_currentFundManager');
+    let managerInfo = null;
+    if (managerData && Array.isArray(managerData) && managerData.length > 0) {
+      const mgr = managerData[0];
+      managerInfo = {
+        name: mgr.name || mgr.mgrname || '--',
+        workTime: mgr.workTime || mgr.fempdate || '',
+        fundScale: mgr.fundScale || 0,
+        fundCount: mgr.fundCount || 0,
+        totalScale: mgr.totalScale || 0,
+        investmentStyle: mgr.investmentStyle || '--',
+      };
+    }
+    
+    // 获取资产配置
+    const assetDataRaw = extractVar('Data_assetAllocation');
+    let assetAllocation = { stock: 0, bond: 0, cash: 0, other: 0 };
+    if (assetDataRaw) {
+      try {
+        const assetObj = typeof assetDataRaw === 'string' ? JSON.parse(assetDataRaw) : assetDataRaw;
+        if (assetObj.series && Array.isArray(assetObj.series)) {
+          const stockSeries = assetObj.series.find((s: any) => s.name === '股票占净比');
+          const bondSeries = assetObj.series.find((s: any) => s.name === '债券占净比');
+          const cashSeries = assetObj.series.find((s: any) => s.name === '现金占净比');
+          
+          if (stockSeries?.data?.length > 0) assetAllocation.stock = stockSeries.data[stockSeries.data.length - 1];
+          if (bondSeries?.data?.length > 0) assetAllocation.bond = bondSeries.data[bondSeries.data.length - 1];
+          if (cashSeries?.data?.length > 0) assetAllocation.cash = cashSeries.data[cashSeries.data.length - 1];
+        }
+      } catch {}
+    }
+    
+    // 获取股票持仓代码
+    const stockCodesRaw = extractVar('stockCodes') || [];
+    const stockCodes = Array.isArray(stockCodesRaw) ? stockCodesRaw : [];
+    
+    // 获取基金基本信息
+    const fundName = extractVar('fS_name');
+    const fundCode = extractVar('fS_code');
+    
+    // 获取基金规模、成立日期、基金公司等信息
+    const fundScale = extractVar('fund_scale') || extractVar('Data_fundScale') || 0;
+    const establishDate = extractVar('Data_establishDate') || extractVar('fund_establishDate') || '';
+    const company = extractVar('Data_company') || extractVar('fund_company') || '';
+    
+    // 获取股票持仓详情（包含名称和占比）
+    const stockCodesNewRaw = extractVar('stockCodesNew') || [];
+    const stockCodesNew = Array.isArray(stockCodesNewRaw) ? stockCodesNewRaw : [];
+    
+    // 尝试提取股票持仓的详细信息
+    const stockHoldingsRaw = extractVar('Data_stockHoldings') || extractVar('fundStocks') || [];
+    let stockHoldings: any[] = [];
+    if (Array.isArray(stockHoldingsRaw) && stockHoldingsRaw.length > 0) {
+      stockHoldings = stockHoldingsRaw;
+    } else if (stockCodes.length > 0) {
+      // 如果只有代码，构造基本结构
+      stockHoldings = stockCodes.map((code: string, idx: number) => ({
+        stockCode: code,
+        stockName: `股票${idx + 1}`,
+        ratio: 0,
+      }));
+    }
+    
+    // 获取业绩数据
+    const result = {
+      name: fundName,
+      code: fundCode,
+      manager: managerInfo,
+      company: company,
+      establishDate: establishDate,
+      scale: parseFloat(fundScale) || 0,
+      netWorth: extractVar('Data_netWorthTrend'),
       performance: {
-        month1: parseFloat(getData('syl_1y') || 0),
-        month3: parseFloat(getData('syl_3y') || 0),
-        month6: parseFloat(getData('syl_6y') || 0),
-        year1: parseFloat(getData('syl_1n') || 0),
-        year2: parseFloat(getData('syl_2n') || 0),
-        year3: parseFloat(getData('syl_3n') || 0),
-        year5: parseFloat(getData('syl_5n') || 0),
-        thisYear: parseFloat(getData('syl_jn') || 0),
-        sinceEstablish: parseFloat(getData('syl_ln') || 0),
+        month1: parseFloat(extractVar('syl_1y') || 0),
+        month3: parseFloat(extractVar('syl_3y') || 0),
+        month6: parseFloat(extractVar('syl_6y') || 0),
+        year1: parseFloat(extractVar('syl_1n') || 0),
+        year2: 0,
+        year3: 0,
+        year5: 0,
+        thisYear: 0,
+        sinceEstablish: 0,
       },
-      stockHoldings: getData('stockCodes'),
-      assetAllocation: getData('Data_assetAllocation'),
-      ranking: getData('fund_ScaleInfo'),
+      stockCodes: stockCodes,
+      stockCodesNew: stockCodesNew,
+      stockHoldings: stockHoldings,
+      assetAllocation: assetAllocation,
+      ranking: null,
     };
-  } catch { return null; }
+    
+    return result;
+  } catch (err) {
+    console.error(`fetchPingzhongData error for ${code}:`, err);
+    return null;
+  }
 }
 
 // ===== 计算风险指标 =====
-function calcRiskMetrics(history: { date: string; value: number }[]): { maxDrawdown: number; volatility: number; sharpeRatio: number; alpha: number } {
-  if (history.length < 2) return { maxDrawdown: 0, volatility: 0, sharpeRatio: 0, alpha: 0 };
+function calcRiskMetrics(history: { date: string; value: number }[]): { maxDrawdown: number; volatility: number; sharpeRatio: number; alpha: number; beta: number; informationRatio: number } {
+  if (history.length < 2) return { maxDrawdown: 0, volatility: 0, sharpeRatio: 0, alpha: 0, beta: 0, informationRatio: 0 };
   
   const values = history.map(h => h.value);
   const returns: number[] = [];
@@ -229,6 +315,8 @@ function calcRiskMetrics(history: { date: string; value: number }[]): { maxDrawd
     volatility: Math.round(annualizedVolatility * 100) / 100,
     sharpeRatio: Math.round(sharpeRatio * 100) / 100,
     alpha: Math.round((annualizedReturn - riskFreeRate) * 100) / 100,
+    beta: 0,
+    informationRatio: 0,
   };
 }
 
@@ -273,6 +361,7 @@ app.get('/api/funds/list', async (req, res) => {
 
     // 转换为前端需要的格式
     const funds = rankFunds.map(f => ({
+      id: f.code,
       code: f.code,
       name: f.name,
       type: '混合型', // 天天基金API没有返回类型，暂时默认
@@ -297,6 +386,8 @@ app.get('/api/funds/list', async (req, res) => {
         volatility: 0,
         sharpeRatio: 0,
         alpha: 0,
+        beta: 0,
+        informationRatio: 0,
       },
       source: '1234567',
     }));
@@ -346,10 +437,21 @@ app.get('/api/funds/:code/detail', async (req, res) => {
     const accumulatedNav = history[0] ? parseFloat(history[0].LJJZ) || 0 : 0;
     const dailyChange = estimate?.estimatedChange || 0;
 
-    const navHistory = history.slice(0, 500).reverse().map((h: any) => ({
-      date: h.FSRQ,
-      value: parseFloat(h.DWJZ) || 0,
-    }));
+    // 使用历史净值数据，如果为空则使用pingzhongdata中的净值走势
+    let navHistory: { date: string; value: number }[] = [];
+    if (history.length > 0) {
+      navHistory = history.slice(0, 500).reverse().map((h: any) => ({
+        date: h.FSRQ,
+        value: parseFloat(h.DWJZ) || 0,
+      }));
+    } else if (pingzhong?.netWorth && Array.isArray(pingzhong.netWorth)) {
+      // 使用pingzhongdata中的净值走势作为备选
+      navHistory = pingzhong.netWorth.slice(-500).map((item: any) => ({
+        date: new Date(item.x).toISOString().split('T')[0],
+        value: parseFloat(item.y) || 0,
+      }));
+    }
+    
     const riskMetrics = calcRiskMetrics(navHistory);
 
     const performance = pingzhong?.performance || {
@@ -361,7 +463,18 @@ app.get('/api/funds/:code/detail', async (req, res) => {
       year3: 0, year5: 0, thisYear: 0, sinceEstablish: 0,
     };
 
-    const assetAllocation = pingzhong?.assetAllocation || { stock: 0, bond: 0, cash: 0, other: 0 };
+    // 解析资产配置（可能是字符串或对象）
+    let assetAllocation = { stock: 0, bond: 0, cash: 0, other: 0 };
+    if (pingzhong?.assetAllocation) {
+      if (typeof pingzhong.assetAllocation === 'string') {
+        try {
+          const parsed = JSON.parse(pingzhong.assetAllocation);
+          if (parsed.stock !== undefined) assetAllocation = parsed;
+        } catch {}
+      } else if (typeof pingzhong.assetAllocation === 'object') {
+        assetAllocation = pingzhong.assetAllocation;
+      }
+    }
 
     const managerInfo = pingzhong?.manager || {};
     const managerDetail = {
@@ -372,6 +485,15 @@ app.get('/api/funds/:code/detail', async (req, res) => {
       totalScale: managerInfo.totalScale || 0,
       style: managerInfo.investmentStyle || '--',
     };
+
+    // 解析重仓股（可能是代码数组或对象数组）
+    const stockCodes = pingzhong?.stockCodes || [];
+    const topHoldings = Array.isArray(stockCodes) ? stockCodes.map((code: string, idx: number) => ({
+      stockCode: code,
+      stockName: `股票${idx + 1}`,
+      ratio: 0,
+      change: '不变',
+    })) : [];
 
     const detail = {
       id: code,
@@ -392,7 +514,7 @@ app.get('/api/funds/:code/detail', async (req, res) => {
       riskMetrics,
       assetAllocation,
       industryAllocation: [],
-      topHoldings: pingzhong?.stockHoldings || [],
+      topHoldings,
       managerDetail,
       fees: { managementFee: 0, custodyFee: 0, purchaseFee: 0, redemptionFee: 0 },
       source: 'eastmoney',
