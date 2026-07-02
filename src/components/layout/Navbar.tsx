@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { to: '/funds', label: '基金' },
   { to: '/watchlist', label: '自选' },
   { to: '/compare', label: '对比' },
+  { to: '/portfolio', label: '持仓' },
 ];
 
 /**

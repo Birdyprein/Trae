@@ -6,6 +6,7 @@ import FundListPage from '@/pages/FundListPage';
 import FundDetailPage from '@/pages/FundDetailPage';
 import WatchlistPage from '@/pages/WatchlistPage';
 import ComparePage from '@/pages/ComparePage';
+import PortfolioPage from '@/pages/PortfolioPage';
 
 /**
  * 根组件
@@ -15,6 +16,7 @@ import ComparePage from '@/pages/ComparePage';
  * - /funds/:code   -> FundDetailPage
  * - /watchlist     -> WatchlistPage
  * - /compare       -> ComparePage
+ * - /portfolio     -> PortfolioPage
  * 所有路由共享 Layout（含动态背景、导航栏、页脚）
  */
 const App: React.FC = () => {
@@ -26,6 +28,7 @@ const App: React.FC = () => {
         <Route path="/funds/:code" element={<FundDetailPage />} />
         <Route path="/watchlist" element={<WatchlistPage />} />
         <Route path="/compare" element={<ComparePage />} />
+        <Route path="/portfolio" element={<PortfolioPage />} />
       </Route>
     </Routes>
   );
