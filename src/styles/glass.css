@@ -103,21 +103,108 @@
 
 /* 玻璃态输入框 */
 .glass-input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 30, 50, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 10px;
   color: #FFFFFF;
   transition: all 0.2s ease;
 }
 
 .glass-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .glass-input:focus {
   outline: none;
+  border-color: rgba(212, 168, 83, 0.5);
+  background: rgba(40, 40, 60, 0.7);
+  box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.15);
+}
+
+/* 下拉选择框适配 */
+.glass-input option {
+  background: rgb(25, 25, 45);
+  color: #FFFFFF;
+  padding: 8px 12px;
+}
+
+.glass-input option:checked {
+  background: rgba(212, 168, 83, 0.2);
+}
+
+.glass-input optgroup {
+  background: rgb(20, 20, 40);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* 复选框适配 */
+.glass-input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: rgba(30, 30, 50, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.glass-input[type="checkbox"]:checked {
+  background: rgba(212, 168, 83, 0.25);
+  border-color: rgba(212, 168, 83, 0.6);
+}
+
+.glass-input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 5px;
+  height: 9px;
+  border: solid #D4A853;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.glass-input[type="checkbox"]:hover {
   border-color: rgba(212, 168, 83, 0.4);
-  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 单选框适配 */
+.glass-input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: rgba(30, 30, 50, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.glass-input[type="radio"]:checked {
+  background: rgba(212, 168, 83, 0.25);
+  border-color: rgba(212, 168, 83, 0.6);
+}
+
+.glass-input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: #D4A853;
+  border-radius: 50%;
+}
+
+.glass-input[type="radio"]:hover {
+  border-color: rgba(212, 168, 83, 0.4);
 }
 
 /* 玻璃态标签/徽章 */
