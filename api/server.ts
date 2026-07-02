@@ -81,7 +81,6 @@ async function fetchFundEstimate(code: string): Promise<any> {
           estimatedChange: gszzl,
           navDate: data.jzrq || '',
           estimateTime: data.gztime || '',
-          source: 'fundgz',
         };
       }
     }
@@ -89,16 +88,23 @@ async function fetchFundEstimate(code: string): Promise<any> {
   return null;
 }
 
-async function fetchFundHistory(code: string): Promise<any[]> {
+async function fetchFundHistory(code: string, pageSize: number = 500): Promise<any[]> {
   try {
-    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=50`;
+    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=${pageSize}`;
+    console.log(`Fetching history for ${code}...`);
     const text = await httpGet(url, { Referer: `https://fund.eastmoney.com/${code}.html` });
+    console.log(`Response length: ${text.length}`);
     const data = JSON.parse(text);
-    return data.Data?.LSJZList || [];
-  } catch { return []; }
+    const result = data.Data?.LSJZList || [];
+    console.log(`Parsed ${result.length} records`);
+    return result;
+  } catch (err) {
+    console.error(`fetchFundHistory(${code}) error:`, err);
+    return [];
+  }
 }
 
-async function fetchFundDetailFromPingzhong(code: string): Promise<any> {
+async function fetchPingzhongData(code: string): Promise<any> {
   try {
     const url = `https://fund.eastmoney.com/pingzhongdata/${code}.js`;
     const text = await httpGet(url, { Referer: `https://fund.eastmoney.com/${code}.html` });
@@ -111,10 +117,10 @@ async function fetchFundDetailFromPingzhong(code: string): Promise<any> {
     return {
       name: getData('fS_name'),
       code: getData('fS_code'),
-      manager: getData('currentFundManager')?.[0]?.name,
+      manager: getData('currentFundManager')?.[0],
       company: getData('jjgs'),
       establishDate: getData('fund_setupDate'),
-      scale: parseFloat(getData('fund_endNetAsset') || 0) / 100000000,
+      scale: parseFloat(getData('fund_endNetAsset') || 0),
       netWorth: getData('Data_netWorthTrend'),
       performance: {
         month1: parseFloat(getData('syl_1y') || 0),
@@ -124,12 +130,56 @@ async function fetchFundDetailFromPingzhong(code: string): Promise<any> {
         year2: parseFloat(getData('syl_2n') || 0),
         year3: parseFloat(getData('syl_3n') || 0),
         year5: parseFloat(getData('syl_5n') || 0),
+        thisYear: parseFloat(getData('syl_jn') || 0),
+        sinceEstablish: parseFloat(getData('syl_ln') || 0),
       },
       stockHoldings: getData('stockCodes'),
       assetAllocation: getData('Data_assetAllocation'),
-      managerDetail: getData('currentFundManager')?.[0],
+      ranking: getData('fund_ScaleInfo'),
     };
   } catch { return null; }
+}
+
+function calcRiskMetrics(history: { date: string; value: number }[]): { maxDrawdown: number; volatility: number; sharpeRatio: number; alpha: number } {
+  if (history.length < 2) return { maxDrawdown: 0, volatility: 0, sharpeRatio: 0, alpha: 0 };
+  
+  const values = history.map(h => h.value);
+  const returns: number[] = [];
+  for (let i = 1; i < values.length; i++) {
+    returns.push((values[i] - values[i - 1]) / values[i - 1]);
+  }
+  
+  let maxDrawdown = 0;
+  let peak = values[0];
+  for (const v of values) {
+    if (v > peak) peak = v;
+    const dd = (v - peak) / peak;
+    if (dd < maxDrawdown) maxDrawdown = dd;
+  }
+  
+  const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+  const variance = returns.reduce((sum, r) => sum + (r - avgReturn) ** 2, 0) / returns.length;
+  const dailyVolatility = Math.sqrt(variance);
+  const annualizedVolatility = dailyVolatility * Math.sqrt(252) * 100;
+  
+  const riskFreeRate = 2.0;
+  const annualizedReturn = avgReturn * 252 * 100;
+  const sharpeRatio = annualizedVolatility > 0 ? (annualizedReturn - riskFreeRate) / annualizedVolatility : 0;
+  
+  return {
+    maxDrawdown: Math.round(maxDrawdown * 10000) / 100,
+    volatility: Math.round(annualizedVolatility * 100) / 100,
+    sharpeRatio: Math.round(sharpeRatio * 100) / 100,
+    alpha: Math.round((annualizedReturn - riskFreeRate) * 100) / 100,
+  };
+}
+
+function calcYearlyReturn(history: any[], days: number): number {
+  if (history.length < days) return 0;
+  const latest = parseFloat(history[0].DWJZ) || 0;
+  const old = parseFloat(history[days - 1]?.DWJZ) || 0;
+  if (old <= 0) return 0;
+  return Math.round((latest / old - 1) * 10000) / 100;
 }
 
 app.get('/api/funds/list', async (req, res) => {
@@ -142,53 +192,69 @@ app.get('/api/funds/list', async (req, res) => {
     const keyword = req.query.keyword as string;
 
     let funds = FUND_DATABASE.filter(f => fundType === 'all' || f.type === fundType);
-
     if (keyword) {
       funds = funds.filter(f => f.name.includes(keyword) || f.code.includes(keyword));
     }
 
     const startIdx = (page - 1) * size;
     const pageFunds = funds.slice(startIdx, startIdx + size);
-    const estimates = await Promise.all(pageFunds.map(f => fetchFundEstimate(f.code)));
+    
+    const results = await Promise.all(pageFunds.map(async (f) => {
+      const [estimate, history] = await Promise.all([
+        fetchFundEstimate(f.code),
+        fetchFundHistory(f.code, 250),
+      ]);
 
-    let result = pageFunds.map((f, i) => {
-      const est = estimates[i];
-      const nav = est?.nav || 0;
-      const estimatedChange = est?.estimatedChange || 0;
-      const volatility = Math.abs(estimatedChange) * 5 + 8;
-      const yearlyReturn = est?.estimatedChange ? est.estimatedChange * 3 + (f.riskLevel - 3) * 5 : 0;
+      const nav = estimate?.nav || (history[0] ? parseFloat(history[0].DWJZ) : 0);
+      const dailyChange = estimate?.estimatedChange || 0;
+      const year1Return = calcYearlyReturn(history, 250);
+      const year3Return = calcYearlyReturn(history, 750);
+      
+      const navHistory = history.slice(0, 250).reverse().map((h: any) => ({
+        date: h.FSRQ,
+        value: parseFloat(h.DWJZ) || 0,
+      }));
+      const riskMetrics = calcRiskMetrics(navHistory);
+
       return {
         ...f,
-        nav,
-        accumulatedNav: est?.nav ? est.nav * 1.2 : 0,
-        dailyChange: estimatedChange,
-        yearlyReturn: Math.round(yearlyReturn * 100) / 100,
-        estimatedNav: est?.estimatedNav,
-        estimatedChange: est?.estimatedChange,
-        source: est?.source || 'mock',
-        riskMetrics: {
-          maxDrawdown: -volatility * 0.9,
-          volatility,
-          sharpeRatio: volatility > 0 ? (yearlyReturn - 2) / volatility : 0,
-          alpha: yearlyReturn * 0.15,
-        },
+        nav: Math.round(nav * 10000) / 10000,
+        accumulatedNav: history[0] ? parseFloat(history[0].LJJZ) || 0 : 0,
+        dailyChange: Math.round(dailyChange * 100) / 100,
+        year1Return,
+        year3Return,
+        yearlyReturn: year1Return,
+        estimatedNav: estimate?.estimatedNav,
+        estimatedChange: estimate?.estimatedChange,
+        riskMetrics,
+        source: 'real',
       };
-    });
+    }));
 
     const sortFieldMap: Record<string, string> = {
-      'year1Return': 'yearlyReturn',
+      'year1Return': 'year1Return',
+      'year3Return': 'year3Return',
       'scale': 'scale',
+      'maxDrawdown': 'riskMetrics.maxDrawdown',
+      'sharpeRatio': 'riskMetrics.sharpeRatio',
     };
-    const sortField = sortFieldMap[sortBy] || 'yearlyReturn';
-    result.sort((a: any, b: any) => {
-      const diff = (b[sortField] || 0) - (a[sortField] || 0);
+    const sortField = sortFieldMap[sortBy] || 'year1Return';
+    
+    results.sort((a: any, b: any) => {
+      let aVal = a;
+      let bVal = b;
+      for (const key of sortField.split('.')) {
+        aVal = aVal?.[key];
+        bVal = bVal?.[key];
+      }
+      const diff = (bVal || 0) - (aVal || 0);
       return sortOrder === 'desc' ? diff : -diff;
     });
 
-    res.json({ funds: result, total: funds.length, source: '1234567.com.cn' });
+    res.json({ funds: results, total: funds.length, source: 'real' });
   } catch (err) {
     console.error('Fund list error:', err);
-    res.json({ funds: [], total: 0, source: 'error' });
+    res.json({ funds: [], total: 0, source: 'error', error: String(err) });
   }
 });
 
@@ -207,10 +273,10 @@ app.get('/api/funds/search', async (req, res) => {
       nav: 0, accumulatedNav: 0, dailyChange: 0, yearlyReturn: 0,
       riskLevel: 3, manager: '--', company: '--', establishDate: '--', scale: 0,
     }));
-    res.json({ funds });
+    res.json({ funds, source: 'eastmoney' });
   } catch (err) {
     console.error('Search error:', err);
-    res.json({ funds: [] });
+    res.json({ funds: [], source: 'error' });
   }
 });
 
@@ -219,57 +285,72 @@ app.get('/api/funds/:code/detail', async (req, res) => {
   try {
     const [estimate, history, pingzhong] = await Promise.all([
       fetchFundEstimate(code),
-      fetchFundHistory(code),
-      fetchFundDetailFromPingzhong(code),
+      fetchFundHistory(code, 500),
+      fetchPingzhongData(code),
     ]);
 
     const baseInfo = FUND_DATABASE.find(f => f.code === code);
 
-    const nav = estimate?.nav || history[0]?.DWJZ ? parseFloat(history[0].DWJZ) : 0;
+    const nav = estimate?.nav || (history[0] ? parseFloat(history[0].DWJZ) : 0);
+    const accumulatedNav = history[0] ? parseFloat(history[0].LJJZ) || 0 : 0;
     const dailyChange = estimate?.estimatedChange || 0;
-    const yearlyReturn = pingzhong?.performance?.year1 || dailyChange * 3 + (baseInfo?.riskLevel ? (baseInfo.riskLevel - 3) * 5 : 0);
+
+    const navHistory = history.slice(0, 500).reverse().map((h: any) => ({
+      date: h.FSRQ,
+      value: parseFloat(h.DWJZ) || 0,
+    }));
+    const riskMetrics = calcRiskMetrics(navHistory);
+
+    const performance = pingzhong?.performance || {
+      month1: calcYearlyReturn(history, 22),
+      month3: calcYearlyReturn(history, 66),
+      month6: calcYearlyReturn(history, 132),
+      year1: calcYearlyReturn(history, 250),
+      year2: calcYearlyReturn(history, 500),
+      year3: 0, year5: 0, thisYear: 0, sinceEstablish: 0,
+    };
+
+    const assetAllocation = pingzhong?.assetAllocation || { stock: 0, bond: 0, cash: 0, other: 0 };
+
+    const managerInfo = pingzhong?.manager || {};
+    const managerDetail = {
+      name: managerInfo.name || baseInfo?.manager || '--',
+      tenure: managerInfo.workTime ? Math.round((Date.now() - new Date(managerInfo.workTime).getTime()) / (365 * 24 * 60 * 60 * 1000) * 10) / 10 : 0,
+      tenureReturn: parseFloat(managerInfo.fundScale) || 0,
+      managedFunds: managerInfo.fundCount || 0,
+      totalScale: managerInfo.totalScale || 0,
+      style: managerInfo.investmentStyle || '--',
+    };
 
     const detail = {
       id: code,
       code,
       name: estimate?.name || pingzhong?.name || baseInfo?.name || `基金${code}`,
-      type: baseInfo?.type || pingzhong?.type || '混合型',
+      type: baseInfo?.type || '混合型',
       riskLevel: baseInfo?.riskLevel || 3,
-      manager: pingzhong?.manager || baseInfo?.manager || '--',
+      manager: managerDetail.name,
       company: pingzhong?.company || baseInfo?.company || '--',
       establishDate: pingzhong?.establishDate || baseInfo?.establishDate || '--',
-      scale: pingzhong?.scale || baseInfo?.scale || 0,
+      scale: (pingzhong?.scale || baseInfo?.scale || 0) / 100000000,
       nav: Math.round(nav * 10000) / 10000,
-      accumulatedNav: estimate?.nav ? Math.round(estimate.nav * 1.2 * 10000) / 10000 : 0,
+      accumulatedNav: Math.round(accumulatedNav * 10000) / 10000,
       dailyChange: Math.round(dailyChange * 100) / 100,
-      yearlyReturn: Math.round(yearlyReturn * 100) / 100,
-      performance: pingzhong?.performance || {
-        month1: 0, month3: 0, month6: 0, year1: Math.round(yearlyReturn * 100) / 100,
-        year2: 0, year3: 0, year5: 0, thisYear: 0, sinceEstablish: 0,
-      },
+      yearlyReturn: performance.year1 || 0,
+      performance,
       ranking: { month1: 0, month3: 0, year1: 0, sameTypeCount: 0 },
-      riskMetrics: {
-        maxDrawdown: -Math.abs(dailyChange) * 45 - 5,
-        volatility: Math.abs(dailyChange) * 5 + 8,
-        sharpeRatio: 0, alpha: 0, beta: 0, informationRatio: 0,
-      },
-      assetAllocation: { stock: 0, bond: 0, cash: 0, other: 0 },
+      riskMetrics,
+      assetAllocation,
       industryAllocation: [],
-      topHoldings: [],
-      managerDetail: {
-        name: pingzhong?.manager || '--', tenure: 0, tenureReturn: 0,
-        managedFunds: 0, totalScale: 0, style: '--',
-      },
+      topHoldings: pingzhong?.stockHoldings || [],
+      managerDetail,
       fees: { managementFee: 0, custodyFee: 0, purchaseFee: 0, redemptionFee: 0 },
-      source: estimate?.source || 'lsjz',
+      source: 'real',
     };
 
     res.json(detail);
   } catch (err) {
     console.error('Fund detail error:', err);
     const baseInfo = FUND_DATABASE.find(f => f.code === code);
-    const nav = 1.5 + Math.random();
-    const dailyChange = (Math.random() - 0.5) * 4;
     res.json({
       id: code, code,
       name: baseInfo?.name || `基金${code}`,
@@ -279,19 +360,16 @@ app.get('/api/funds/:code/detail', async (req, res) => {
       company: baseInfo?.company || '--',
       establishDate: baseInfo?.establishDate || '--',
       scale: baseInfo?.scale || 0,
-      nav: Math.round(nav * 10000) / 10000,
-      accumulatedNav: Math.round(nav * 1.2 * 10000) / 10000,
-      dailyChange: Math.round(dailyChange * 100) / 100,
-      yearlyReturn: Math.round((dailyChange * 3 + ((baseInfo?.riskLevel || 3) - 3) * 5) * 100) / 100,
+      nav: 0, accumulatedNav: 0, dailyChange: 0, yearlyReturn: 0,
       performance: { month1: 0, month3: 0, month6: 0, year1: 0, year2: 0, year3: 0, year5: 0, thisYear: 0, sinceEstablish: 0 },
       ranking: { month1: 0, month3: 0, year1: 0, sameTypeCount: 0 },
-      riskMetrics: { maxDrawdown: 0, volatility: 0, sharpeRatio: 0, alpha: 0, beta: 0, informationRatio: 0 },
+      riskMetrics: { maxDrawdown: 0, volatility: 0, sharpeRatio: 0, alpha: 0 },
       assetAllocation: { stock: 0, bond: 0, cash: 0, other: 0 },
       industryAllocation: [],
       topHoldings: [],
       managerDetail: { name: '--', tenure: 0, tenureReturn: 0, managedFunds: 0, totalScale: 0, style: '--' },
       fees: { managementFee: 0, custodyFee: 0, purchaseFee: 0, redemptionFee: 0 },
-      source: 'fallback',
+      source: 'error',
     });
   }
 });
@@ -300,7 +378,7 @@ app.get('/api/funds/:code/nav', async (req, res) => {
   const code = req.params.code;
   const days = parseInt(req.query.days as string) || 365;
   try {
-    const history = await fetchFundHistory(code);
+    const history = await fetchFundHistory(code, days);
     if (history.length > 0) {
       const data = history.slice(0, days).reverse().map((item: any) => ({
         date: item.FSRQ || '',
@@ -312,17 +390,7 @@ app.get('/api/funds/:code/nav', async (req, res) => {
       return;
     }
   } catch {}
-  const baseNav = 1.5;
-  const result = [];
-  let value = baseNav;
-  const now = new Date();
-  for (let i = days; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    value = value * (1 + (Math.random() - 0.48) * 0.012);
-    result.push({ date: date.toISOString().slice(0, 10), value: Math.round(value * 10000) / 10000 });
-  }
-  res.json({ data: result, source: 'mock' });
+  res.json({ data: [], source: 'empty' });
 });
 
 app.get('/api/market/indices', async (_req, res) => {
@@ -345,18 +413,7 @@ app.get('/api/market/indices', async (_req, res) => {
     res.json({ success: true, data: indices, source: 'eastmoney' });
   } catch (err) {
     console.error('Market indices error:', err);
-    res.json({
-      success: true,
-      data: [
-        { code: '000001', name: '上证指数', value: 3287.45, change: 12.34, changePercent: 0.38 },
-        { code: '399001', name: '深证成指', value: 10456.78, change: -23.45, changePercent: -0.22 },
-        { code: '399006', name: '创业板指', value: 2089.12, change: 5.67, changePercent: 0.27 },
-        { code: '000688', name: '科创50', value: 987.65, change: -3.21, changePercent: -0.32 },
-        { code: 'HSI', name: '恒生指数', value: 17890.12, change: 45.67, changePercent: 0.26 },
-        { code: 'NDX', name: '纳斯达克', value: 15678.90, change: 89.01, changePercent: 0.57 },
-      ],
-      source: 'mock',
-    });
+    res.json({ success: false, data: [], source: 'error' });
   }
 });
 
@@ -377,16 +434,7 @@ app.get('/api/market/index-history', async (req, res) => {
     });
     res.json({ success: true, data: history, source: 'eastmoney' });
   } catch {
-    const history = [];
-    let value = 3250;
-    const now = new Date();
-    for (let i = days; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      value = value * (1 + (Math.random() - 0.48) * 0.015);
-      history.push({ date: date.toISOString().slice(0, 10), value: Math.round(value * 100) / 100 });
-    }
-    res.json({ success: true, data: history, source: 'mock' });
+    res.json({ success: false, data: [], source: 'error' });
   }
 });
 
@@ -403,19 +451,7 @@ app.get('/api/market/sectors', async (_req, res) => {
     }));
     res.json({ success: true, data: sectors, source: 'eastmoney' });
   } catch {
-    const mockSectors = [
-      { name: '半导体', code: 'BK0425' }, { name: '人工智能', code: 'BK0854' },
-      { name: '新能源汽车', code: 'BK0741' }, { name: '医药生物', code: 'BK0465' },
-      { name: '白酒', code: 'BK0367' }, { name: '银行', code: 'BK0404' },
-      { name: '房地产', code: 'BK0363' }, { name: '煤炭', code: 'BK0419' },
-      { name: '光伏', code: 'BK0532' }, { name: '芯片', code: 'BK0548' },
-    ];
-    const data = mockSectors.map(s => ({
-      ...s,
-      change: Math.round((Math.random() - 0.5) * 8 * 100) / 100,
-      volume: Math.round(Math.random() * 400 + 50),
-    }));
-    res.json({ success: true, data, source: 'mock' });
+    res.json({ success: false, data: [], source: 'error' });
   }
 });
 
@@ -424,16 +460,7 @@ app.get('/api/benchmarks/:code/history', async (req, res) => {
   const days = parseInt(req.query.days as string) || 365;
   try {
     if (code === 'category_avg') {
-      const history = [];
-      let value = 1.0;
-      const now = new Date();
-      for (let i = days; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        value = value * (1 + (Math.random() - 0.49) * 0.01);
-        history.push({ date: date.toISOString().slice(0, 10), value: Math.round(value * 10000) / 10000 });
-      }
-      res.json({ success: true, data: history, source: 'mock' });
+      res.json({ success: false, data: [], source: 'not_supported' });
       return;
     }
     const secid = code === '000300' ? '1.000300' : code === '000905' ? '1.000905' : '1.000852';
@@ -450,41 +477,22 @@ app.get('/api/benchmarks/:code/history', async (req, res) => {
     });
     res.json({ success: true, data: history, source: 'eastmoney' });
   } catch {
-    const history = [];
-    let value = 1.0;
-    const now = new Date();
-    for (let i = days; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      value = value * (1 + (Math.random() - 0.49) * 0.01);
-      history.push({ date: date.toISOString().slice(0, 10), value: Math.round(value * 10000) / 10000 });
-    }
-    res.json({ success: true, data: history, source: 'mock' });
+    res.json({ success: false, data: [], source: 'error' });
   }
 });
 
 app.post('/api/analysis/portfolio', (req, res) => {
   const { fundIds } = req.body;
-  const industries = [
-    { industry: '信息技术', ratio: 28.5 },
-    { industry: '医药生物', ratio: 18.3 },
-    { industry: '消费', ratio: 15.2 },
-    { industry: '金融', ratio: 12.8 },
-    { industry: '新能源', ratio: 10.5 },
-    { industry: '其他', ratio: 14.7 },
-  ];
-  const overlappedStocks = [
-    { stockCode: '600519', stockName: '贵州茅台', funds: fundIds.slice(0, 2), totalRatio: 8.5 },
-    { stockCode: '000858', stockName: '五粮液', funds: fundIds.slice(0, 2), totalRatio: 5.2 },
-  ];
   res.json({
-    industryDistribution: industries,
-    holdingsOverlap: { overlappedStocks, overlapRate: 15.2 },
-    styleExposure: { marketCap: 'large', style: 'balanced', score: 65 },
-    portfolioRisk: { estimatedMaxDrawdown: -18.5, estimatedVolatility: 22.3, diversificationScore: 72 },
+    industryDistribution: [],
+    holdingsOverlap: { overlappedStocks: [], overlapRate: 0 },
+    styleExposure: { marketCap: '--', style: '--', score: 0 },
+    portfolioRisk: { estimatedMaxDrawdown: 0, estimatedVolatility: 0, diversificationScore: 0 },
+    source: 'not_implemented',
   });
 });
 
 app.listen(PORT, () => {
   console.log(`API server running at http://localhost:${PORT}`);
+  console.log('Data sources: fundgz.1234567.com.cn, api.fund.eastmoney.com, push2.eastmoney.com');
 });
