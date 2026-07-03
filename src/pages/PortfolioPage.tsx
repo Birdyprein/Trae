@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, Trash2, AlertTriangle, ArrowRight, ShoppingCart } from 'lucide-react';
+import { Briefcase, Trash2, PlusCircle, ShoppingCart } from 'lucide-react';
 import type { Fund } from '@/types';
 import { fetchFundDetail } from '@/services/api';
 import { usePortfolioStore } from '@/stores/portfolioStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import EmptyState from '@/components/common/EmptyState';
 import ComplianceNotice from '@/components/common/ComplianceNotice';
+import PurchaseModal from '@/components/fund/PurchaseModal';
 
 interface PortfolioFund extends Fund {
   shares: number;
@@ -21,6 +22,7 @@ export default function PortfolioPage() {
   const { holdings, removeHolding, clearHoldings } = usePortfolioStore();
   const [funds, setFunds] = useState<PortfolioFund[]>([]);
   const [loading, setLoading] = useState(true);
+  const [purchaseFund, setPurchaseFund] = useState<PortfolioFund | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,13 +196,22 @@ export default function PortfolioPage() {
                       {fund.profitRate >= 0 ? '+' : ''}{fund.profitRate.toFixed(2)}%
                     </td>
                     <td className="text-center p-3">
-                      <button
-                        onClick={() => removeHolding(fund.code)}
-                        className="glass-button p-1.5 text-secondary hover:text-red-400"
-                        title="删除"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => setPurchaseFund(fund)}
+                          className="glass-button p-1.5 text-secondary hover:text-gold-400"
+                          title="加仓"
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => removeHolding(fund.code)}
+                          className="glass-button p-1.5 text-secondary hover:text-red-400"
+                          title="删除"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -211,6 +222,12 @@ export default function PortfolioPage() {
       )}
 
       <ComplianceNotice />
+
+      <PurchaseModal
+        isOpen={purchaseFund !== null}
+        onClose={() => setPurchaseFund(null)}
+        fund={purchaseFund ?? { name: '', code: '', nav: 0 }}
+      />
     </div>
   );
 }

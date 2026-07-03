@@ -206,47 +206,53 @@ export default function FundDetailPage() {
         </div>
 
         {/* 操作按钮 */}
-        <div className="mt-5 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => toggle(detail.id ?? detail.code)}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium ${
-              inWatchlist ? 'glass-button-gold' : 'glass-button text-white'
-            }`}
-          >
-            <Star className={`w-4 h-4 ${inWatchlist ? 'fill-current' : ''}`} />
-            {inWatchlist ? '已加自选' : '加入自选'}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              inCompare
-                ? removeFromCompare(detail.id ?? detail.code)
-                : addToCompare(detail.id ?? detail.code)
-            }
-            className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium ${
-              inCompare ? 'glass-button-gold' : 'glass-button text-white'
-            }`}
-          >
-            <GitCompareArrows className="w-4 h-4" />
-            {inCompare ? '已加对比' : '加入对比'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSipOpen(true)}
-            className="glass-button inline-flex items-center gap-1.5 px-4 py-2 text-sm text-white font-medium"
-          >
-            <Calculator className="w-4 h-4" />
-            定投计算器
-          </button>
-          <button
-            type="button"
-            onClick={() => setPurchaseOpen(true)}
-            className="glass-button inline-flex items-center gap-1.5 px-4 py-2 text-sm text-white font-medium"
-          >
-            <ShoppingCart className="w-4 h-4" />
-            购买
-          </button>
+        <div className="mt-5 space-y-2.5">
+          {/* 主操作：购买 + 定投 */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPurchaseOpen(true)}
+              className="flex-1 glass-button-gold inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              购买
+            </button>
+            <button
+              type="button"
+              onClick={() => setSipOpen(true)}
+              className="flex-1 glass-button inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm text-white font-medium"
+            >
+              <Calculator className="w-4 h-4" />
+              定投计算器
+            </button>
+          </div>
+          {/* 次要操作：自选 + 对比 */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => toggle(detail.id ?? detail.code)}
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium ${
+                inWatchlist ? 'glass-button-gold' : 'glass-button text-white/60 hover:text-white'
+              }`}
+            >
+              <Star className={`w-3.5 h-3.5 ${inWatchlist ? 'fill-current' : ''}`} />
+              {inWatchlist ? '已加自选' : '加入自选'}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                inCompare
+                  ? removeFromCompare(detail.id ?? detail.code)
+                  : addToCompare(detail.id ?? detail.code)
+              }
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium ${
+                inCompare ? 'glass-button-gold' : 'glass-button text-white/60 hover:text-white'
+              }`}
+            >
+              <GitCompareArrows className="w-3.5 h-3.5" />
+              {inCompare ? '已加对比' : '加入对比'}
+            </button>
+          </div>
         </div>
       </section>
 
