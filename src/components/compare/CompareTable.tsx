@@ -174,6 +174,11 @@ function findBestIndex(funds: FundDetail[], row: RowDef): number | null {
     return typeof v === 'number' ? v : NaN;
   });
   if (numericValues.every((v) => isNaN(v))) return null;
+  // 所有基金数据相同时，没有"最优"（不显示皇冠）
+  const validValues = numericValues.filter((v) => !isNaN(v));
+  if (validValues.length > 1 && validValues.every((v) => v === validValues[0])) {
+    return null;
+  }
   let bestIdx = -1;
   let bestVal = NaN;
   for (let i = 0; i < numericValues.length; i++) {

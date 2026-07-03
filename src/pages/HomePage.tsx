@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calculator, ArrowRight, TrendingUp, LayoutGrid, Star, Briefcase } from 'lucide-react';
+import { Calculator, ArrowRight, LayoutGrid, Star, Briefcase } from 'lucide-react';
 import type { Fund, MarketIndex, NavPoint } from '@/types';
 import { fetchMarketIndices, fetchIndexHistory, fetchFundList } from '@/services/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -61,10 +61,6 @@ export default function HomePage() {
       {/* Hero 区域 */}
       <section className="glass-card p-6 sm:p-10 lg:p-14 relative overflow-hidden animate-slide-up">
         <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-1.5 glass-badge mb-4">
-            <TrendingUp className="w-3 h-3" />
-            <span>iOS 26 Liquid Glass · 玻璃态基金分析</span>
-          </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
             <span className="gradient-text-gold">洞察市场脉搏</span>
             <br />
