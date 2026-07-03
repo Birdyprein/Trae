@@ -13,18 +13,46 @@ import FundFilterBar from '@/components/fund/FundFilterBar';
 import FundAdvancedFilter from '@/components/fund/FundAdvancedFilter';
 
 const PAGE_SIZE = 20;
+const SCROLL_KEY = 'fund-list-scroll';
+
+function saveScrollState(page: number, keyword: string) {
+  sessionStorage.setItem(SCROLL_KEY, JSON.stringify({
+    scrollY: window.scrollY,
+    page,
+    keyword,
+    timestamp: Date.now(),
+  }));
+}
+
+function loadScrollState(): { scrollY: number; page: number; keyword: string } | null {
+  try {
+    const raw = sessionStorage.getItem(SCROLL_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    // 30 分钟内有效
+    if (Date.now() - data.timestamp > 30 * 60 * 1000) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
 
 export default function FundListPage() {
   const { basic, advanced, showAdvanced } = useFilterStore();
+  const savedState = loadScrollState();
 
   const [funds, setFunds] = useState<Fund[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(savedState?.page ?? 1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [keyword, setKeyword] = useState('');
+  const [keyword, setKeyword] = useState(savedState?.keyword ?? '');
+  const [restored, setRestored] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restoringRef = useRef(!!savedState);
+  const savedScrollY = useRef(savedState?.scrollY ?? 0);
 
   const buildParams = useCallback((kw: string, b: BasicFilter) => {
     const type = b.type && b.type.length > 0 ? b.type.join(',') : undefined;
@@ -78,9 +106,45 @@ export default function FundListPage() {
   // 翻页
   useEffect(() => {
     loadFunds(page, keyword, basic);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (restoringRef.current) {
+      restoringRef.current = false;
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
+
+  // 保存滚动位置
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollSaveRef.current) clearTimeout(scrollSaveRef.current);
+      scrollSaveRef.current = setTimeout(() => {
+        saveScrollState(page, keyword);
+      }, 200);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollSaveRef.current) clearTimeout(scrollSaveRef.current);
+    };
+  }, [page, keyword]);
+
+  // 数据加载完成后恢复滚动位置
+  useEffect(() => {
+    if (!loading && funds.length > 0 && savedScrollY.current > 0 && !restored) {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: savedScrollY.current, behavior: 'instant' as ScrollBehavior });
+        setRestored(true);
+      });
+    }
+  }, [loading, funds.length, restored]);
+
+  // 离开页面时保存状态
+  useEffect(() => {
+    return () => {
+      saveScrollState(page, keyword);
+    };
+  }, [page, keyword]);
 
   return (
     <div className="section-container section-padding space-y-4">

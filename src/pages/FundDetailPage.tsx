@@ -41,6 +41,7 @@ export default function FundDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [sipOpen, setSipOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [compareToast, setCompareToast] = useState(false);
 
   const { has, toggle } = useWatchlistStore();
   const { isInCompare, addToCompare, removeFromCompare } = useCompareStore();
@@ -237,11 +238,15 @@ export default function FundDetailPage() {
             </button>
             <button
               type="button"
-              onClick={() =>
-                inCompare
-                  ? removeFromCompare(detail.id ?? detail.code)
-                  : addToCompare(detail.id ?? detail.code)
-              }
+              onClick={() => {
+                if (inCompare) {
+                  removeFromCompare(detail.id ?? detail.code);
+                } else {
+                  addToCompare(detail.id ?? detail.code);
+                  setCompareToast(true);
+                  setTimeout(() => setCompareToast(false), 2000);
+                }
+              }}
               className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium ${
                 inCompare ? 'glass-button-gold' : 'glass-button text-white/60 hover:text-white'
               }`}
@@ -295,6 +300,19 @@ export default function FundDetailPage() {
 
       <SIPCalculator isOpen={sipOpen} onClose={() => setSipOpen(false)} />
       <PurchaseModal isOpen={purchaseOpen} onClose={() => setPurchaseOpen(false)} fund={detail} />
+
+      {/* 加入对比提示 */}
+      {compareToast && (
+        <div className="fixed top-20 inset-x-0 flex justify-center z-50 pointer-events-none animate-slide-down">
+          <Link
+            to="/compare"
+            className="glass-card pointer-events-auto px-4 py-2.5 flex items-center gap-2 text-sm text-white shadow-lg"
+          >
+            <GitCompareArrows className="w-4 h-4 text-gold-400" />
+            已加入对比，点击查看
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
