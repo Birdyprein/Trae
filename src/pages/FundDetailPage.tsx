@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, GitCompareArrows, Calculator, ArrowLeft } from 'lucide-react';
+import { Star, GitCompareArrows, Calculator, ArrowLeft, ShoppingCart } from 'lucide-react';
 import type { FundDetail, NavPoint, BenchmarkHistory } from '@/types';
 import { fetchFundDetail, fetchFundNav, fetchBenchmarkHistory } from '@/services/api';
 import { useWatchlistStore } from '@/stores/watchlistStore';
@@ -236,6 +236,14 @@ export default function FundDetailPage() {
           >
             <Calculator className="w-4 h-4" />
             定投计算器
+          </button>
+          <button
+            type="button"
+            onClick={() => alert(`已申请购买：${detail.name}（${detail.code}）`)}
+            className="glass-button inline-flex items-center gap-1.5 px-4 py-2 text-sm text-white font-medium"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            购买
           </button>
         </div>
       </section>
