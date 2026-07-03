@@ -32,6 +32,14 @@ const Navbar: React.FC<NavbarProps> = ({ onSearch }) => {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const [searchValue, setSearchValue] = useState<string>('');
 
+  // 移动端菜单打开时，滚动关闭菜单
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleScroll = () => setMobileOpen(false);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [mobileOpen]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = searchValue.trim();
