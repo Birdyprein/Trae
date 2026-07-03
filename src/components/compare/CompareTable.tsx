@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Crown } from 'lucide-react';
 import type { FundDetail } from '@/types';
@@ -15,7 +14,6 @@ interface CompareTableProps {
 
 type RowDef = {
   label: string;
-  group?: string;
   get: (f: FundDetail) => number | string | undefined;
   format?: (v: number | string | undefined) => string;
   color?: (v: number | string | undefined) => string;
@@ -57,7 +55,6 @@ const rows: RowDef[] = [
   },
   {
     label: '近1月收益',
-    group: '业绩表现',
     get: (f) => safeNumber(f.performance?.month1),
     format: (v) => formatPercent(typeof v === 'number' ? v : 0),
     color: (v) => getChangeColor(typeof v === 'number' ? v : 0),
@@ -86,7 +83,6 @@ const rows: RowDef[] = [
   },
   {
     label: '最大回撤',
-    group: '风险指标',
     get: (f) => safeNumber(f.riskMetrics?.maxDrawdown),
     format: (v) => formatPercent(typeof v === 'number' ? v : 0),
     color: (v) => getChangeColor(typeof v === 'number' ? v : 0),
@@ -112,7 +108,6 @@ const rows: RowDef[] = [
   },
   {
     label: '管理费',
-    group: '费率',
     get: (f) => safeNumber(f.fees?.managementFee),
     format: (v) => formatNumber(typeof v === 'number' ? v : 0) + '%',
     higherBetter: false,
@@ -137,7 +132,6 @@ const rows: RowDef[] = [
   },
   {
     label: '基金经理',
-    group: '其他',
     get: (f) => safeString(f.managerDetail?.name || f.manager),
   },
   {
@@ -175,8 +169,6 @@ function findBestIndex(funds: FundDetail[], row: RowDef): number | null {
 export default function CompareTable({ funds, onRemove }: CompareTableProps) {
   if (!funds || funds.length === 0) return null;
 
-  let lastGroup = '';
-
   return (
     <div className="glass-table overflow-x-auto">
       <table className="w-full text-sm whitespace-nowrap">
@@ -212,22 +204,9 @@ export default function CompareTable({ funds, onRemove }: CompareTableProps) {
         </thead>
         <tbody>
           {rows.map((row, rIdx) => {
-            const showGroupHeader = row.group && row.group !== lastGroup;
-            if (row.group) lastGroup = row.group;
             const bestIdx = findBestIndex(funds, row);
             return (
-              <Fragment key={`row-${rIdx}-${row.label}`}>
-                {showGroupHeader && (
-                  <tr className="glass-table-row">
-                    <td
-                      colSpan={funds.length + 1}
-                      className="px-4 py-2.5 text-secondary text-sm font-medium"
-                    >
-                      {row.group}
-                    </td>
-                  </tr>
-                )}
-                <tr className={`glass-table-row ${rIdx % 2 === 0 ? 'bg-white/[0.02]' : ''}`}>
+              <tr key={`row-${rIdx}-${row.label}`} className={`glass-table-row ${rIdx % 2 === 0 ? 'bg-white/[0.02]' : ''}`}>
                   <td className="px-4 py-2.5 text-secondary sticky left-0 bg-[#0a0a12] z-10 border-r border-surface-divider">
                     {row.label}
                   </td>
@@ -248,7 +227,6 @@ export default function CompareTable({ funds, onRemove }: CompareTableProps) {
                     );
                   })}
                 </tr>
-              </Fragment>
             );
           })}
         </tbody>

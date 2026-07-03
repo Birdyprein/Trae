@@ -1,10 +1,9 @@
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import type { AssetAllocation, IndustryAllocationItem } from '@/types';
-import { formatPercent, safeNumber, safeString } from '@/utils/formatters';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import type { AssetAllocation } from '@/types';
+import { formatPercent, safeNumber } from '@/utils/formatters';
 
 interface AssetAllocationChartProps {
   allocation: AssetAllocation;
-  industryAllocation: IndustryAllocationItem[];
 }
 
 const ASSET_COLORS: Record<string, string> = {
@@ -21,32 +20,7 @@ const ASSET_LABELS: Record<string, string> = {
   other: '其他',
 };
 
-const INDUSTRY_COLORS = [
-  '#D4A853', '#E5C068', '#EF4444', '#3B82F6', '#22C55E',
-  '#8B5CF6', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1',
-];
-
-interface TooltipPayloadItem {
-  name?: string;
-  value?: number;
-  payload?: { name?: string; value?: number; ratio?: number };
-}
-
-function IndustryTooltip({ active, payload }: {
-  active?: boolean;
-  payload?: TooltipPayloadItem[];
-}) {
-  if (!active || !payload || payload.length === 0) return null;
-  const item = payload[0]?.payload;
-  return (
-    <div className="glass-data-card px-3 py-2 text-xs">
-      <div className="text-white mb-0.5">{safeString(item?.name)}</div>
-      <div className="text-gold-300 font-mono">{formatPercent(item?.ratio ?? item?.value)}</div>
-    </div>
-  );
-}
-
-export default function AssetAllocationChart({ allocation, industryAllocation }: AssetAllocationChartProps) {
+export default function AssetAllocationChart({ allocation }: AssetAllocationChartProps) {
   const assetData = (['stock', 'bond', 'cash', 'other'] as const)
     .map((key) => ({
       name: ASSET_LABELS[key],
@@ -54,14 +28,6 @@ export default function AssetAllocationChart({ allocation, industryAllocation }:
       value: safeNumber(allocation?.[key]),
     }))
     .filter((d) => d.value > 0);
-
-  const industryData = (industryAllocation ?? [])
-    .map((item) => ({
-      name: safeString(item.industry),
-      ratio: safeNumber(item.ratio),
-    }))
-    .sort((a, b) => b.ratio - a.ratio)
-    .slice(0, 10);
 
   const totalAsset = assetData.reduce((sum, d) => sum + d.value, 0);
 
@@ -135,8 +101,6 @@ export default function AssetAllocationChart({ allocation, industryAllocation }:
             ))}
           </div>
         </div>
-
-
       </div>
     </div>
   );

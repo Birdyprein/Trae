@@ -18,8 +18,6 @@ const METRICS: MetricConfig[] = [
   { key: 'volatility', label: '波动率', desc: '年化波动', format: (v) => formatPercent(v), useChangeColor: false },
   { key: 'sharpeRatio', label: '夏普比率', desc: '风险调整收益', format: (v) => formatNumber(v, 2), useChangeColor: true },
   { key: 'alpha', label: 'Alpha', desc: '超额收益', format: (v) => formatPercent(v), useChangeColor: true },
-  { key: 'beta', label: 'Beta', desc: '市场敏感度', format: (v) => formatNumber(v, 2), useChangeColor: false },
-  { key: 'informationRatio', label: '信息比率', desc: '主动管理能力', format: (v) => formatNumber(v, 2), useChangeColor: true },
 ];
 
 export default function RiskMetricsCards({ metrics }: RiskMetricsCardsProps) {

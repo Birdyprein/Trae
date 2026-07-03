@@ -16,8 +16,6 @@ import NavChart from '@/components/fund/NavChart';
 import PerformanceTable from '@/components/fund/PerformanceTable';
 import RiskMetricsCards from '@/components/fund/RiskMetricsCards';
 import AssetAllocationChart from '@/components/fund/AssetAllocationChart';
-import HoldingsTable from '@/components/fund/HoldingsTable';
-import ManagerCard from '@/components/fund/ManagerCard';
 import SIPCalculator from '@/components/calculator/SIPCalculator';
 import PurchaseModal from '@/components/fund/PurchaseModal';
 
@@ -27,7 +25,6 @@ const TIME_RANGES = [
   { label: '6月', days: 180 },
   { label: '1年', days: 365 },
   { label: '3年', days: 1095 },
-  { label: '全部', days: 3650 },
 ];
 
 export default function FundDetailPage() {
@@ -287,17 +284,14 @@ export default function FundDetailPage() {
       {/* 业绩表现 */}
       <section>
         <h2 className="text-base sm:text-lg font-semibold text-white mb-4">业绩表现</h2>
-        <PerformanceTable performance={detail.performance} ranking={detail.ranking} />
+        <PerformanceTable performance={detail.performance} />
       </section>
 
       {/* 风险指标（组件自带 glass-card 与标题） */}
       <RiskMetricsCards metrics={detail.riskMetrics} />
 
       {/* 资产配置（组件自带 glass-card 与标题，需 allocation 和 industryAllocation） */}
-      <AssetAllocationChart
-        allocation={detail.assetAllocation}
-        industryAllocation={detail.industryAllocation}
-      />
+      <AssetAllocationChart allocation={detail.assetAllocation} />
 
       <SIPCalculator isOpen={sipOpen} onClose={() => setSipOpen(false)} />
       <PurchaseModal isOpen={purchaseOpen} onClose={() => setPurchaseOpen(false)} fund={detail} />
