@@ -1,10 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { GitCompareArrows, ArrowRight, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { Fund, BasicFilter } from '@/types';
 import { fetchFundList } from '@/services/api';
 import { useFilterStore } from '@/stores/filterStore';
-import { useCompareStore } from '@/stores/compareStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import EmptyState from '@/components/common/EmptyState';
 import SearchBar from '@/components/common/SearchBar';
@@ -18,7 +16,6 @@ const PAGE_SIZE = 20;
 
 export default function FundListPage() {
   const { basic, advanced, showAdvanced } = useFilterStore();
-  const { compareList, removeFromCompare, clearCompare } = useCompareStore();
 
   const [funds, setFunds] = useState<Fund[]>([]);
   const [total, setTotal] = useState(0);
@@ -150,47 +147,6 @@ export default function FundListPage() {
             onChange={setPage}
           />
         </>
-      )}
-
-      {/* 对比浮动按钮 */}
-      {compareList.length > 0 && (
-        <div className="fixed bottom-4 inset-x-0 flex justify-center z-40 px-4 pointer-events-none">
-          <div className="glass-card pointer-events-auto px-4 py-3 flex items-center gap-3 max-w-full">
-            <GitCompareArrows className="w-5 h-5 text-gold-400 flex-shrink-0" />
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide max-w-[50vw]">
-              {compareList.map((id) => (
-                <span
-                  key={id}
-                  className="glass-badge flex items-center gap-1 whitespace-nowrap"
-                >
-                  {id}
-                  <button
-                    type="button"
-                    onClick={() => removeFromCompare(id)}
-                    className="hover:text-gain"
-                    aria-label="移出对比"
-                  >
-                    <X className="w-2.5 h-2.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <Link
-              to="/compare"
-              className="glass-button-gold inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium whitespace-nowrap"
-            >
-              对比
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-            <button
-              type="button"
-              onClick={clearCompare}
-              className="text-muted hover:text-gain text-xs whitespace-nowrap"
-            >
-              清空
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );
