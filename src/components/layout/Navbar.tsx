@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { TrendingUp, Menu, X, Search } from 'lucide-react';
 
@@ -155,6 +155,15 @@ const Navbar: React.FC<NavbarProps> = ({ onSearch }) => {
           </div>
         ) : null}
       </div>
+
+      {/* 移动端菜单打开时的遮罩层，点击关闭 */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 top-14 z-30 bg-black/50"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
     </header>
   );
 };
