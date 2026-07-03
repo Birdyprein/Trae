@@ -201,7 +201,7 @@ export default function CompareTable({ funds, onRemove }: CompareTableProps) {
       <table className="w-full text-sm whitespace-nowrap">
         <thead>
           <tr className="border-b border-surface-divider">
-            <th className="text-left font-medium px-4 py-3 text-muted sticky left-0 bg-surface-data z-10 min-w-[100px]">
+            <th className="text-left font-medium px-4 py-3 text-muted sticky left-0 bg-[#0a0a12] z-10 min-w-[100px]">
               指标
             </th>
             {funds.map((fund, idx) => (
@@ -237,7 +237,7 @@ export default function CompareTable({ funds, onRemove }: CompareTableProps) {
             return (
               <Fragment key={`row-${rIdx}-${row.label}`}>
                 {showGroupHeader && (
-                  <tr className="bg-surface-hover/50">
+                  <tr className="bg-white/[0.03]">
                     <td
                       colSpan={funds.length + 1}
                       className="px-4 py-2 text-xs uppercase tracking-wider text-gold-400/80 font-medium"
@@ -246,8 +246,8 @@ export default function CompareTable({ funds, onRemove }: CompareTableProps) {
                     </td>
                   </tr>
                 )}
-                <tr className={`glass-table-row ${rIdx % 2 === 0 ? 'bg-surface-hover/20' : ''}`}>
-                  <td className="px-4 py-2.5 text-secondary sticky left-0 bg-surface-data z-10 border-r border-surface-divider">
+                <tr className={`glass-table-row ${rIdx % 2 === 0 ? 'bg-white/[0.02]' : ''}`}>
+                  <td className="px-4 py-2.5 text-secondary sticky left-0 bg-[#0a0a12] z-10 border-r border-surface-divider">
                     {row.label}
                   </td>
                   {funds.map((fund, idx) => {
