@@ -237,10 +237,10 @@ export default function CompareTable({ funds, onRemove }: CompareTableProps) {
             return (
               <Fragment key={`row-${rIdx}-${row.label}`}>
                 {showGroupHeader && (
-                  <tr className="bg-white/[0.03]">
+                  <tr className="glass-table-row">
                     <td
                       colSpan={funds.length + 1}
-                      className="px-4 py-2 text-xs uppercase tracking-wider text-gold-400/80 font-medium"
+                      className="px-4 py-2.5 text-secondary text-sm font-medium"
                     >
                       {row.group}
                     </td>
