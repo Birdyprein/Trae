@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calculator, ArrowRight, TrendingUp, LayoutGrid, Star } from 'lucide-react';
+import { Calculator, ArrowRight, TrendingUp, LayoutGrid, Star, Briefcase } from 'lucide-react';
 import type { Fund, MarketIndex, NavPoint } from '@/types';
 import { fetchMarketIndices, fetchIndexHistory, fetchFundList } from '@/services/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -90,6 +90,20 @@ export default function HomePage() {
               <LayoutGrid className="w-4 h-4" />
               浏览基金
               <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              to="/portfolio"
+              className="glass-button inline-flex items-center gap-2 px-5 py-2.5 text-sm text-white font-medium"
+            >
+              <Briefcase className="w-4 h-4" />
+              查看持仓
+            </Link>
+            <Link
+              to="/watchlist"
+              className="glass-button inline-flex items-center gap-2 px-5 py-2.5 text-sm text-white font-medium"
+            >
+              <Star className="w-4 h-4" />
+              查看自选
             </Link>
           </div>
         </div>
