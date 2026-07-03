@@ -85,13 +85,6 @@ const rows: RowDef[] = [
     higherBetter: true,
   },
   {
-    label: '近3年收益',
-    get: (f) => safeNumber(f.performance?.year3),
-    format: (v) => formatPercent(typeof v === 'number' ? v : 0),
-    color: (v) => getChangeColor(typeof v === 'number' ? v : 0),
-    higherBetter: true,
-  },
-  {
     label: '最大回撤',
     group: '风险指标',
     get: (f) => safeNumber(f.riskMetrics?.maxDrawdown),
@@ -116,11 +109,6 @@ const rows: RowDef[] = [
     get: (f) => safeNumber(f.riskMetrics?.alpha),
     format: (v) => formatNumber(typeof v === 'number' ? v : 0),
     higherBetter: true,
-  },
-  {
-    label: 'Beta',
-    get: (f) => safeNumber(f.riskMetrics?.beta),
-    format: (v) => formatNumber(typeof v === 'number' ? v : 0),
   },
   {
     label: '管理费',
@@ -156,13 +144,6 @@ const rows: RowDef[] = [
     label: '管理年限',
     get: (f) => safeNumber(f.managerDetail?.tenure),
     format: (v) => formatNumber(typeof v === 'number' ? v : 0) + ' 年',
-    higherBetter: true,
-  },
-  {
-    label: '任职回报',
-    get: (f) => safeNumber(f.managerDetail?.tenureReturn),
-    format: (v) => formatPercent(typeof v === 'number' ? v : 0),
-    color: (v) => getChangeColor(typeof v === 'number' ? v : 0),
     higherBetter: true,
   },
 ];
