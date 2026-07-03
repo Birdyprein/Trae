@@ -53,6 +53,8 @@ export default function FundListPage() {
   const scrollSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const restoringRef = useRef(!!savedState);
   const savedScrollY = useRef(savedState?.scrollY ?? 0);
+  const skipFilterRef = useRef(true);
+  const skipKeywordRef = useRef(true);
 
   const buildParams = useCallback((kw: string, b: BasicFilter) => {
     const type = b.type && b.type.length > 0 ? b.type.join(',') : undefined;
@@ -83,15 +85,23 @@ export default function FundListPage() {
     [buildParams]
   );
 
-  // 筛选/排序变化时回到第 1 页
+  // 筛选/排序变化时回到第 1 页（跳过首次挂载，避免覆盖恢复的状态）
   useEffect(() => {
+    if (skipFilterRef.current) {
+      skipFilterRef.current = false;
+      return;
+    }
     setPage(1);
     loadFunds(1, keyword, basic);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [basic.type, basic.sortBy, basic.sortOrder, basic.riskLevel, advanced]);
 
-  // 关键字防抖
+  // 关键字防抖（跳过首次挂载，避免覆盖恢复的状态）
   useEffect(() => {
+    if (skipKeywordRef.current) {
+      skipKeywordRef.current = false;
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(1);
@@ -132,10 +142,10 @@ export default function FundListPage() {
   // 数据加载完成后恢复滚动位置
   useEffect(() => {
     if (!loading && funds.length > 0 && savedScrollY.current > 0 && !restored) {
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         window.scrollTo({ top: savedScrollY.current, behavior: 'instant' as ScrollBehavior });
         setRestored(true);
-      });
+      }, 100);
     }
   }, [loading, funds.length, restored]);
 
