@@ -231,12 +231,23 @@ async function fetchPingzhongData(code: string): Promise<any> {
     let managerInfo = null;
     if (managerData && Array.isArray(managerData) && managerData.length > 0) {
       const mgr = managerData[0];
+      // 解析 fundSize: "188.73亿(14只基金)" -> 提取总规模和基金数量
+      let parsedTotalScale = 0;
+      let parsedFundCount = 0;
+      if (mgr.fundSize) {
+        const match = String(mgr.fundSize).match(/([\d.]+)亿?\((\d+)只/);
+        if (match) {
+          parsedTotalScale = parseFloat(match[1]);
+          parsedFundCount = parseInt(match[2]);
+        }
+      }
       managerInfo = {
         name: mgr.name || mgr.mgrname || '--',
         workTime: mgr.workTime || mgr.fempdate || '',
-        fundScale: mgr.fundScale || 0,
-        fundCount: mgr.fundCount || 0,
-        totalScale: mgr.totalScale || 0,
+        fundSize: mgr.fundSize || '',
+        fundScale: parsedTotalScale || mgr.fundScale || 0,
+        fundCount: parsedFundCount || mgr.fundCount || 0,
+        totalScale: parsedTotalScale || mgr.totalScale || 0,
         investmentStyle: mgr.investmentStyle || '--',
       };
     }
@@ -398,6 +409,32 @@ async function fetchPingzhongData(code: string): Promise<any> {
   }
 }
 
+// ===== 从 f10 页面提取费率信息 =====
+async function fetchFundFees(code: string): Promise<{ managementFee: number; custodyFee: number; purchaseFee: number; redemptionFee: number } | null> {
+  try {
+    const url = `https://fundf10.eastmoney.com/jbgk_${code}.html`;
+    const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
+    
+    const managementFeeMatch = text.match(/管理费率<\/th><td>([\d.]+)%/);
+    const custodyFeeMatch = text.match(/托管费率<\/th><td>([\d.]+)%/);
+    const purchaseFeeMatch = text.match(/最高申购费率<\/th><td>([\d.]+)%/);
+    const redemptionFeeMatch = text.match(/最高赎回费率<\/th><td>([\d.]+)%/);
+    
+    if (managementFeeMatch || custodyFeeMatch || purchaseFeeMatch || redemptionFeeMatch) {
+      return {
+        managementFee: managementFeeMatch ? parseFloat(managementFeeMatch[1]) : 0,
+        custodyFee: custodyFeeMatch ? parseFloat(custodyFeeMatch[1]) : 0,
+        purchaseFee: purchaseFeeMatch ? parseFloat(purchaseFeeMatch[1]) : 0,
+        redemptionFee: redemptionFeeMatch ? parseFloat(redemptionFeeMatch[1]) : 0,
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error(`fetchFundFees error for ${code}:`, err);
+    return null;
+  }
+}
+
 // ===== 计算风险指标 =====
 function calcRiskMetrics(history: { date: string; value: number }[]): { maxDrawdown: number; volatility: number; sharpeRatio: number; alpha: number; beta: number; informationRatio: number } {
   if (history.length < 2) return { maxDrawdown: 0, volatility: 0, sharpeRatio: 0, alpha: 0, beta: 0, informationRatio: 0 };
@@ -542,10 +579,11 @@ app.get('/api/funds/search', async (req, res) => {
 app.get('/api/funds/:code/detail', async (req, res) => {
   const code = req.params.code;
   try {
-    const [estimate, history, pingzhong] = await Promise.all([
+    const [estimate, history, pingzhong, fees] = await Promise.all([
       fetchFundEstimate(code),
       fetchFundHistory(code, 500),
       fetchPingzhongData(code),
+      fetchFundFees(code),
     ]);
 
     const nav = estimate?.nav || (history[0] ? parseFloat(history[0].DWJZ) : 0);
@@ -580,7 +618,8 @@ app.get('/api/funds/:code/detail', async (req, res) => {
       month6: calcReturn(history, 132),
       year1: calcReturn(history, 250),
       year2: calcReturn(history, 500),
-      year3: 0, year5: 0, thisYear: 0, sinceEstablish: 0,
+      year3: calcReturn(history, 750),
+      year5: 0, thisYear: 0, sinceEstablish: 0,
     };
 
     // 解析资产配置（可能是字符串或对象）
@@ -597,10 +636,18 @@ app.get('/api/funds/:code/detail', async (req, res) => {
     }
 
     const managerInfo = pingzhong?.manager || {};
+    // 解析 tenure: "5年又101天" -> 年数
+    let tenure = 0;
+    if (managerInfo.workTime) {
+      const tenureMatch = String(managerInfo.workTime).match(/(\d+)年又(\d+)天/);
+      if (tenureMatch) {
+        tenure = parseInt(tenureMatch[1]) + parseInt(tenureMatch[2]) / 365;
+      }
+    }
     const managerDetail = {
       name: managerInfo.name || '--',
-      tenure: managerInfo.workTime ? Math.round((Date.now() - new Date(managerInfo.workTime).getTime()) / (365 * 24 * 60 * 60 * 1000) * 10) / 10 : 0,
-      tenureReturn: parseFloat(managerInfo.fundScale) || 0,
+      tenure,
+      tenureReturn: 0,
       managedFunds: managerInfo.fundCount || 0,
       totalScale: managerInfo.totalScale || 0,
       style: managerInfo.investmentStyle || '--',
@@ -636,7 +683,7 @@ app.get('/api/funds/:code/detail', async (req, res) => {
       industryAllocation: [],
       topHoldings,
       managerDetail,
-      fees: { managementFee: 0, custodyFee: 0, purchaseFee: 0, redemptionFee: 0 },
+      fees: fees || { managementFee: 0, custodyFee: 0, purchaseFee: 0, redemptionFee: 0 },
       source: 'eastmoney',
     };
 
