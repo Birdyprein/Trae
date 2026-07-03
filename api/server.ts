@@ -156,32 +156,40 @@ async function fetchFundEstimate(code: string): Promise<any> {
 
 // ===== 东方财富接口：历史净值 =====
 async function fetchFundHistory(code: string, pageSize: number = 500): Promise<any[]> {
+  const PER_PAGE = 20; // 东方财富API每页固定20条
+  const pages = Math.ceil(pageSize / PER_PAGE);
+  const allResults: any[] = [];
+  
   try {
-    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=${pageSize}&callback=jQuery112409`;
-    const text = await httpGet(url, {
-      'Referer': `https://fund.eastmoney.com/${code}.html`,
-      'Accept': '*/*',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      'Accept-Encoding': 'gzip, deflate',
-      'Connection': 'keep-alive',
-      'X-Requested-With': 'XMLHttpRequest',
-    });
-    console.log(`fetchFundHistory for ${code}: response length = ${text.length}, first 200: ${text.substring(0, 200)}`);
-    
-    // 解析JSONP响应：jQuery112409({...})
-    const jsonpMatch = text.match(/jQuery112409\(([\s\S]*)\)/);
-    if (!jsonpMatch) {
-      console.log(`fetchFundHistory for ${code}: no JSONP match, trying direct JSON parse`);
-      const data = JSON.parse(text);
-      const list = data.Data?.LSJZList || [];
-      console.log(`fetchFundHistory for ${code}: got ${list.length} records`);
-      return list;
+    for (let pageIndex = 1; pageIndex <= pages; pageIndex++) {
+      const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=${pageIndex}&pageSize=${PER_PAGE}&callback=jQuery112409`;
+      const text = await httpGet(url, {
+        'Referer': `https://fund.eastmoney.com/${code}.html`,
+        'Accept': '*/*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'X-Requested-With': 'XMLHttpRequest',
+      });
+      
+      const jsonpMatch = text.match(/jQuery112409\(([\s\S]*)\)/);
+      if (!jsonpMatch) {
+        try {
+          const data = JSON.parse(text);
+          const list = data.Data?.LSJZList || [];
+          if (list.length === 0) break;
+          allResults.push(...list);
+        } catch { break; }
+      } else {
+        const data = JSON.parse(jsonpMatch[1]);
+        const list = data.Data?.LSJZList || [];
+        if (list.length === 0) break;
+        allResults.push(...list);
+      }
     }
     
-    const data = JSON.parse(jsonpMatch[1]);
-    const list = data.Data?.LSJZList || [];
-    console.log(`fetchFundHistory for ${code}: got ${list.length} records`);
-    return list;
+    console.log(`fetchFundHistory for ${code}: got ${allResults.length} records (requested ${pageSize})`);
+    return allResults.slice(0, pageSize);
   } catch (err) {
     console.error(`fetchFundHistory error for ${code}:`, err);
     return [];
