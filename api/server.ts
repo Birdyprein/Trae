@@ -583,15 +583,53 @@ app.get('/api/funds/search', async (req, res) => {
   }
 });
 
+// ===== 从 f10 页面获取重仓股数据 =====
+async function fetchTopHoldings(code: string): Promise<any[]> {
+  try {
+    const url = `https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=${code}&topline=10&rt=${Date.now()}`;
+    const text = await httpGet(url, {
+      'Referer': `https://fundf10.eastmoney.com/ccmx_${code}.html`,
+      'Accept': '*/*',
+    });
+    
+    // 解析 var apidata={ content:"...", ... }
+    const contentMatch = text.match(/content:\s*"([\s\S]*?)(?:"\s*,\s*arryear|\{)/);
+    if (!contentMatch) return [];
+    
+    const html = contentMatch[1].replace(/\\"/g, '"').replace(/\\'/g, "'");
+    
+    // 提取每个 <tr> 行，匹配 股票代码、股票名称、占净值比例
+    const rowRegex = /<tr[^>]*>[\s\S]*?<td[^>]*>\d+<\/td>\s*<td[^>]*>.*?<a[^>]*>(\d{6})<\/a>[\s\S]*?<td[^>]*class=['\"]tol['\"][^>]*>.*?<a[^>]*>([^<]+)<\/a>[\s\S]*?<td[^>]*class=['\"]tor['\"][^>]*>([\d.]+)%/g;
+    
+    const holdings: any[] = [];
+    let match;
+    while ((match = rowRegex.exec(html)) !== null) {
+      holdings.push({
+        stockCode: match[1],
+        stockName: match[2].trim(),
+        ratio: parseFloat(match[3]),
+        change: '--',
+      });
+    }
+    
+    console.log(`fetchTopHoldings for ${code}: got ${holdings.length} stocks`);
+    return holdings;
+  } catch (err) {
+    console.error(`fetchTopHoldings error for ${code}:`, err);
+    return [];
+  }
+}
+
 // ===== 基金详情接口 =====
 app.get('/api/funds/:code/detail', async (req, res) => {
   const code = req.params.code;
   try {
-    const [estimate, history, pingzhong, fees] = await Promise.all([
+    const [estimate, history, pingzhong, fees, topHoldings] = await Promise.all([
       fetchFundEstimate(code),
-      fetchFundHistory(code, 500),
+      fetchFundHistory(code, 800),
       fetchPingzhongData(code),
       fetchFundFees(code),
+      fetchTopHoldings(code),
     ]);
 
     const nav = estimate?.nav || (history[0] ? parseFloat(history[0].DWJZ) : 0);
@@ -620,7 +658,15 @@ app.get('/api/funds/:code/detail', async (req, res) => {
     
     const riskMetrics = calcRiskMetrics(navHistory);
 
-    const performance = pingzhong?.performance || {
+    const performance = pingzhong?.performance ? {
+      ...pingzhong.performance,
+      // 如果 pingzhong 没有 year2/year3，用 history 计算
+      year2: pingzhong.performance.year2 || calcReturn(history, 500),
+      year3: pingzhong.performance.year3 || calcReturn(history, 750),
+      year5: pingzhong.performance.year5 || 0,
+      thisYear: pingzhong.performance.thisYear || 0,
+      sinceEstablish: pingzhong.performance.sinceEstablish || 0,
+    } : {
       month1: calcReturn(history, 22),
       month3: calcReturn(history, 66),
       month6: calcReturn(history, 132),
@@ -642,6 +688,11 @@ app.get('/api/funds/:code/detail', async (req, res) => {
         assetAllocation = pingzhong.assetAllocation;
       }
     }
+    // 修正 other 字段：确保四项之和为 100
+    const allocSum = assetAllocation.stock + assetAllocation.bond + assetAllocation.cash;
+    if (allocSum > 0 && allocSum < 100) {
+      assetAllocation.other = Math.round((100 - allocSum) * 100) / 100;
+    }
 
     const managerInfo = pingzhong?.manager || {};
     // 解析 tenure: "5年又101天" -> 年数
@@ -660,15 +711,6 @@ app.get('/api/funds/:code/detail', async (req, res) => {
       totalScale: managerInfo.totalScale || 0,
       style: managerInfo.investmentStyle || '--',
     };
-
-    // 解析重仓股（可能是代码数组或对象数组）
-    const stockCodes = pingzhong?.stockCodes || [];
-    const topHoldings = Array.isArray(stockCodes) ? stockCodes.map((code: string, idx: number) => ({
-      stockCode: code,
-      stockName: `股票${idx + 1}`,
-      ratio: 0,
-      change: '不变',
-    })) : [];
 
     const detail = {
       id: code,
