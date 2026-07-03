@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, Trash2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Briefcase, Trash2, AlertTriangle, ArrowRight, ShoppingCart } from 'lucide-react';
 import type { Fund } from '@/types';
 import { fetchFundDetail } from '@/services/api';
 import { usePortfolioStore } from '@/stores/portfolioStore';
@@ -124,11 +124,22 @@ export default function PortfolioPage() {
       {loading ? (
         <LoadingSpinner />
       ) : !hasFunds ? (
-        <EmptyState
-          icon={<Briefcase className="w-10 h-10 text-secondary" />}
-          title="暂无持仓"
-          description="从基金列表或详情页添加基金到持仓，跟踪投资收益"
-        />
+        <>
+          <EmptyState
+            icon={<Briefcase className="w-10 h-10 text-secondary" />}
+            title="暂无持仓"
+            description="从基金列表或详情页添加基金到持仓，跟踪投资收益"
+          />
+          <div className="flex justify-center -mt-3">
+            <Link
+              to="/funds"
+              className="glass-button-gold inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              购买基金
+            </Link>
+          </div>
+        </>
       ) : (
         <div className="glass-card overflow-hidden">
           <div className="overflow-x-auto">

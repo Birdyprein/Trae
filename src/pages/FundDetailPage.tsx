@@ -19,6 +19,7 @@ import AssetAllocationChart from '@/components/fund/AssetAllocationChart';
 import HoldingsTable from '@/components/fund/HoldingsTable';
 import ManagerCard from '@/components/fund/ManagerCard';
 import SIPCalculator from '@/components/calculator/SIPCalculator';
+import PurchaseModal from '@/components/fund/PurchaseModal';
 
 const TIME_RANGES = [
   { label: '1月', days: 30 },
@@ -42,6 +43,7 @@ export default function FundDetailPage() {
   const [navLoading, setNavLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sipOpen, setSipOpen] = useState(false);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
 
   const { has, toggle } = useWatchlistStore();
   const { isInCompare, addToCompare, removeFromCompare } = useCompareStore();
@@ -239,7 +241,7 @@ export default function FundDetailPage() {
           </button>
           <button
             type="button"
-            onClick={() => alert(`已申请购买：${detail.name}（${detail.code}）`)}
+            onClick={() => setPurchaseOpen(true)}
             className="glass-button inline-flex items-center gap-1.5 px-4 py-2 text-sm text-white font-medium"
           >
             <ShoppingCart className="w-4 h-4" />
@@ -292,6 +294,7 @@ export default function FundDetailPage() {
       />
 
       <SIPCalculator isOpen={sipOpen} onClose={() => setSipOpen(false)} />
+      <PurchaseModal isOpen={purchaseOpen} onClose={() => setPurchaseOpen(false)} fund={detail} />
     </div>
   );
 }
