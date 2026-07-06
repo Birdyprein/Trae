@@ -127,7 +127,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearch }) => {
 
         {/* 移动端展开菜单 */}
         {mobileOpen ? (
-          <div className="md:hidden pb-3 animate-slide-up">
+          <div className="md:hidden pb-3 animate-slide-up relative z-50">
             <form
               onSubmit={handleSearchSubmit}
               className="relative mb-2"

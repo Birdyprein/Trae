@@ -1,5 +1,5 @@
 // ===== 基金类型 =====
-export type FundType = '股票型' | '混合型' | '债券型' | '指数型' | '货币型' | 'QDII' | 'FOF' | 'ETF';
+export type FundType = '股票型' | '混合型' | '债券型' | '指数型' | '货币型' | 'QDII' | 'FOF';
 export type RiskLevel = 1 | 2 | 3 | 4 | 5;
 
 export interface Fund {

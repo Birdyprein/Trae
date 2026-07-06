@@ -1,7 +1,7 @@
 import type { FundType, Benchmark } from '@/types';
 
 export const FUND_TYPES: FundType[] = [
-  '股票型', '混合型', '债券型', '指数型', '货币型', 'QDII', 'FOF', 'ETF'
+  '股票型', '混合型', '债券型', '指数型', '货币型', 'QDII', 'FOF'
 ];
 
 export const FUND_TYPE_COLORS: Record<string, string> = {

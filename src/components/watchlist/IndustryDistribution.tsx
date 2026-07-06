@@ -56,12 +56,14 @@ export default function IndustryDistribution({ data }: IndustryDistributionProps
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    background: 'rgba(15, 15, 30, 0.92)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: '#f8f7f4',
+                    border: '1px solid #D4A853',
                     borderRadius: '8px',
-                    color: '#fff',
+                    color: '#1a1a2e',
                     fontSize: '12px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
                   }}
+                  itemStyle={{ color: '#1a1a2e' }}
                   formatter={(value: number) => [`${formatNumber(value)}%`, '占比']}
                 />
                 <Legend

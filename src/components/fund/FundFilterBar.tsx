@@ -1,7 +1,6 @@
 import { ChevronDown, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
-import { FUND_TYPES } from '@/constants';
 import { useFilterStore } from '@/stores/filterStore';
-import type { FundType, SortField } from '@/types';
+import type { SortField } from '@/types';
 
 const SORT_OPTIONS: { value: SortField; label: string }[] = [
   { value: 'year1Return', label: '近1年收益' },
@@ -15,47 +14,15 @@ const SORT_OPTIONS: { value: SortField; label: string }[] = [
 export default function FundFilterBar() {
   const { basic, setBasic, showAdvanced, toggleAdvanced } = useFilterStore();
 
-  const selectedTypes = basic.type ?? [];
-
-  const toggleType = (type: FundType) => {
-    const next = selectedTypes.includes(type)
-      ? selectedTypes.filter((t) => t !== type)
-      : [...selectedTypes, type];
-    setBasic({ type: next.length === 0 ? undefined : next });
-  };
-
   const toggleSortOrder = () => {
     setBasic({ sortOrder: basic.sortOrder === 'asc' ? 'desc' : 'asc' });
   };
 
   return (
     <div className="glass-data-card p-4">
-      <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
-        {/* 基金类型按钮组 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs text-muted mr-1 shrink-0">类型</span>
-            {FUND_TYPES.map((type) => {
-              const active = selectedTypes.includes(type);
-              return (
-                <button
-                  key={type}
-                  onClick={() => toggleType(type)}
-                  className={`glass-button px-2.5 py-1 text-xs transition-all ${
-                    active
-                      ? '!bg-gold-400/20 !border-gold-400/40 !text-gold-300'
-                      : 'text-secondary'
-                  }`}
-                >
-                  {type}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
+      <div className="flex items-center gap-3 lg:gap-4">
         {/* 排序 */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative">
             <ArrowUpDown size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
             <select

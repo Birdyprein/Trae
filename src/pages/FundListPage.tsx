@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
-import type { Fund, BasicFilter } from '@/types';
+import type { Fund, BasicFilter, AdvancedFilter } from '@/types';
 import { fetchFundList } from '@/services/api';
 import { useFilterStore } from '@/stores/filterStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -39,7 +39,11 @@ function loadScrollState(): { scrollY: number; page: number; keyword: string } |
 
 export default function FundListPage() {
   const { basic, advanced, showAdvanced } = useFilterStore();
-  const savedState = loadScrollState();
+
+  // 挂载时一次性恢复状态，之后不再读取 sessionStorage
+  const savedState = useRef(loadScrollState()).current;
+  const isRestoringRef = useRef(!!savedState);
+  const savedScrollY = useRef(savedState?.scrollY ?? 0);
 
   const [funds, setFunds] = useState<Fund[]>([]);
   const [total, setTotal] = useState(0);
@@ -49,32 +53,37 @@ export default function FundListPage() {
   const [keyword, setKeyword] = useState(savedState?.keyword ?? '');
   const [restored, setRestored] = useState(false);
 
+  const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const restoringRef = useRef(!!savedState);
-  const savedScrollY = useRef(savedState?.scrollY ?? 0);
-  const skipFilterRef = useRef(true);
-  const skipKeywordRef = useRef(true);
 
-  const buildParams = useCallback((kw: string, b: BasicFilter) => {
+  const buildParams = useCallback((kw: string, b: BasicFilter, a: AdvancedFilter) => {
     const type = b.type && b.type.length > 0 ? b.type.join(',') : undefined;
     return {
       type,
       sortBy: b.sortBy,
       sortOrder: b.sortOrder,
       keyword: kw || undefined,
+      ...(a.minYear1Return !== undefined && { minYear1Return: a.minYear1Return }),
+      ...(a.minYear3Return !== undefined && { minYear3Return: a.minYear3Return }),
+      ...(a.minEstablishYears !== undefined && { minEstablishYears: a.minEstablishYears }),
+      ...(a.excludeNewFunds && { excludeNewFunds: true }),
     };
   }, []);
 
   const loadFunds = useCallback(
-    async (p: number, kw: string, b: BasicFilter) => {
+    async (p: number, kw: string, b: BasicFilter, a: AdvancedFilter) => {
+      if (abortRef.current) abortRef.current.abort();
+      abortRef.current = new AbortController();
+
       setLoading(true);
       setError(null);
       try {
-        const res = await fetchFundList(p, PAGE_SIZE, buildParams(kw, b));
+        const res = await fetchFundList(p, PAGE_SIZE, buildParams(kw, b, a), abortRef.current.signal);
         setFunds(res.funds ?? []);
         setTotal(res.total ?? 0);
-      } catch {
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
         setError('基金数据加载失败，请稍后重试');
         setFunds([]);
         setTotal(0);
@@ -85,27 +94,27 @@ export default function FundListPage() {
     [buildParams]
   );
 
-  // 筛选/排序变化时回到第 1 页（跳过首次挂载，避免覆盖恢复的状态）
+  // 初始加载 + 恢复完成后恢复滚动位置
   useEffect(() => {
-    if (skipFilterRef.current) {
-      skipFilterRef.current = false;
-      return;
-    }
-    setPage(1);
-    loadFunds(1, keyword, basic);
+    loadFunds(page, keyword, basic, advanced);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [basic.type, basic.sortBy, basic.sortOrder, basic.riskLevel, advanced]);
+  }, []);
 
-  // 关键字防抖（跳过首次挂载，避免覆盖恢复的状态）
+  // 筛选/排序/高级筛选变化时回到第 1 页（恢复期间不执行）
   useEffect(() => {
-    if (skipKeywordRef.current) {
-      skipKeywordRef.current = false;
-      return;
-    }
+    if (isRestoringRef.current) return;
+    setPage(1);
+    loadFunds(1, keyword, basic, advanced);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [basic.sortBy, basic.sortOrder, advanced]);
+
+  // 关键字防抖（恢复期间不执行）
+  useEffect(() => {
+    if (isRestoringRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(1);
-      loadFunds(1, keyword, basic);
+      loadFunds(1, keyword, basic, advanced);
     }, 350);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -115,14 +124,22 @@ export default function FundListPage() {
 
   // 翻页
   useEffect(() => {
-    loadFunds(page, keyword, basic);
-    if (restoringRef.current) {
-      restoringRef.current = false;
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    if (isRestoringRef.current) return;
+    loadFunds(page, keyword, basic, advanced);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
+
+  // 数据加载完成后恢复滚动位置
+  useEffect(() => {
+    if (!loading && funds.length > 0 && !restored) {
+      if (isRestoringRef.current && savedScrollY.current > 0) {
+        window.scrollTo({ top: savedScrollY.current, behavior: 'instant' as ScrollBehavior });
+      }
+      isRestoringRef.current = false;
+      setRestored(true);
+    }
+  }, [loading, funds.length, restored]);
 
   // 保存滚动位置
   useEffect(() => {
@@ -139,20 +156,11 @@ export default function FundListPage() {
     };
   }, [page, keyword]);
 
-  // 数据加载完成后恢复滚动位置
-  useEffect(() => {
-    if (!loading && funds.length > 0 && savedScrollY.current > 0 && !restored) {
-      setTimeout(() => {
-        window.scrollTo({ top: savedScrollY.current, behavior: 'instant' as ScrollBehavior });
-        setRestored(true);
-      }, 100);
-    }
-  }, [loading, funds.length, restored]);
-
   // 离开页面时保存状态
   useEffect(() => {
     return () => {
       saveScrollState(page, keyword);
+      if (abortRef.current) abortRef.current.abort();
     };
   }, [page, keyword]);
 
@@ -163,13 +171,13 @@ export default function FundListPage() {
         <p className="text-muted text-xs sm:text-sm mt-1">共 {total.toLocaleString()} 只基金</p>
       </div>
 
-      {/* 搜索栏（自带防抖） */}
-      <SearchBar onSearch={setKeyword} placeholder="搜索基金代码或名称" />
+      {/* 搜索栏 */}
+      <SearchBar onSearch={setKeyword} placeholder="搜索基金代码或名称" defaultValue={keyword} />
 
-      {/* 基础筛选（组件内部使用 store） */}
+      {/* 基础筛选 */}
       <FundFilterBar />
 
-      {/* 高级筛选（组件内部使用 store，自带展开/折叠按钮在 FundFilterBar 中） */}
+      {/* 高级筛选 */}
       {showAdvanced && (
         <div className="animate-slide-up">
           <FundAdvancedFilter />
@@ -188,7 +196,7 @@ export default function FundListPage() {
           <div className="text-center -mt-4 pb-2">
             <button
               type="button"
-              onClick={() => loadFunds(page, keyword, basic)}
+              onClick={() => loadFunds(page, keyword, basic, advanced)}
               className="glass-button-gold inline-flex items-center px-4 py-2 text-xs"
             >
               重试

@@ -23,6 +23,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 }) => {
   const [value, setValue] = useState<string>(defaultValue ?? '');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipFirstRef = useRef(true);
 
   // 受控恢复外部默认值
   useEffect(() => {
@@ -30,6 +31,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
   }, [defaultValue]);
 
   useEffect(() => {
+    if (skipFirstRef.current) {
+      skipFirstRef.current = false;
+      return;
+    }
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }

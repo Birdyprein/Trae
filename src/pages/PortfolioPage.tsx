@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Briefcase, Trash2, PlusCircle, ShoppingCart } from 'lucide-react';
-import type { Fund } from '@/types';
+import type { FundDetail } from '@/types';
 import { fetchFundDetail } from '@/services/api';
 import { usePortfolioStore } from '@/stores/portfolioStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -9,7 +9,7 @@ import EmptyState from '@/components/common/EmptyState';
 import ComplianceNotice from '@/components/common/ComplianceNotice';
 import PurchaseModal from '@/components/fund/PurchaseModal';
 
-interface PortfolioFund extends Fund {
+interface PortfolioFund extends FundDetail {
   shares: number;
   avgCost: number;
   buyDate: string;
@@ -129,8 +129,7 @@ export default function PortfolioPage() {
         <>
           <EmptyState
             icon={<Briefcase className="w-10 h-10 text-secondary" />}
-            title="暂无持仓"
-            description="从基金列表或详情页添加基金到持仓，跟踪投资收益"
+            message="暂无持仓，从基金列表或详情页添加基金到持仓，跟踪投资收益"
           />
           <div className="flex justify-center -mt-3">
             <Link

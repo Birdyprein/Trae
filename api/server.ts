@@ -129,6 +129,90 @@ async function fetchFundRank(page: number = 1, pageSize: number = 20, sortField:
   }
 }
 
+// ===== 天天基金接口：基金交易列表（全量，用于搜索） =====
+async function fetchFundTradeNew(
+  fundType: string = 'all',
+  sortField: string = 'zzf',
+  sortOrder: string = 'desc'
+): Promise<{ funds: any[]; total: number }> {
+  const ftMap: Record<string, string> = {
+    all: 'all',
+    gp: 'gp',
+    hh: 'hh',
+    zq: 'zq',
+    zs: 'zs',
+    qdii: 'qdii',
+    fof: 'fof',
+    hb: 'hb',
+    // 中文映射
+    '股票型': 'gp',
+    '混合型': 'hh',
+    '债券型': 'zq',
+    '指数型': 'zs',
+    'QDII': 'qdii',
+    'FOF': 'fof',
+    '货币型': 'hb',
+  };
+
+  const ft = ftMap[fundType] || 'all';
+  const typesToFetch = ft === 'all' ? ['gp', 'hh', 'zq', 'zs', 'qdii', 'fof', 'hb'] : [ft];
+
+  let allFunds: any[] = [];
+  await Promise.all(
+    typesToFetch.map(async (t) => {
+      try {
+        const url = `https://fundapi.eastmoney.com/fundtradenew.aspx?ft=${t}&pi=1&pn=100000&sc=${sortField}&st=${sortOrder}`;
+        const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
+        const datasMatch = text.match(/datas:\[([\s\S]*?)\]/);
+        if (!datasMatch) return;
+        const datasStr = datasMatch[1];
+        const datas = datasStr.split('","').map((s) => s.replace(/^"|"$/g, ''));
+
+        const funds = datas.map((data) => {
+          const fields = data.split('|');
+          return {
+            code: fields[0],
+            name: fields[1] || fields[0],
+            shortName: fields[1] || fields[0],
+            type: fields[2] || '--',
+            date: fields[3] || '',
+            nav: parseFloat(fields[4]) || 0,
+            dailyChange: parseFloat(fields[5]) || 0,
+            year1Return: parseFloat(fields[8]) || 0,
+          };
+        });
+        allFunds = allFunds.concat(funds);
+      } catch (err) {
+        console.error(`fetchFundTradeNew error for ${t}:`, err);
+      }
+    })
+  );
+
+  // 同一基金可能在多个类型接口中出现，按代码去重
+  const seen = new Set<string>();
+  const uniqueFunds = allFunds.filter((f) => {
+    if (seen.has(f.code)) return false;
+    seen.add(f.code);
+    return true;
+  });
+
+  return { funds: uniqueFunds, total: uniqueFunds.length };
+}
+
+// ===== 基金搜索：获取匹配基金代码 =====
+async function searchFundCodes(keyword: string): Promise<string[]> {
+  if (!keyword.trim()) return [];
+  try {
+    const url = `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?callback=&m=1&key=${encodeURIComponent(keyword)}&_=${Date.now()}`;
+    const text = await httpGet(url, { Referer: 'https://fund.eastmoney.com/' });
+    const data = JSON.parse(text.replace(/^[^{]*({[\s\S]*})[^}]*$/, '$1'));
+    return (data.Datas || []).map((item: any) => item.CODE).filter(Boolean);
+  } catch (err) {
+    console.error('searchFundCodes error:', err);
+    return [];
+  }
+}
+
 // ===== 天天基金接口：实时估值 =====
 async function fetchFundEstimate(code: string): Promise<any> {
   try {
@@ -294,9 +378,9 @@ async function fetchPingzhongData(code: string): Promise<any> {
     
     // 如果 pingzhongdata 中没有这些信息，尝试从其他 API 获取
     if (!company || !establishDate || fundScale === 0) {
+      const fundInfoUrl = `https://fund.eastmoney.com/${code}.html`;
       try {
         // 尝试从基金档案页面获取基本信息
-        const fundInfoUrl = `https://fund.eastmoney.com/${code}.html`;
         const fundInfoText = await httpGet(fundInfoUrl, { Referer: 'https://fund.eastmoney.com/' });
         
         // 提取基金公司名称
@@ -329,8 +413,8 @@ async function fetchPingzhongData(code: string): Promise<any> {
     
     // 如果还是没有获取到，尝试从 f10 页面获取
     if (!company || !establishDate || fundScale === 0) {
+      const f10Url = `https://fundf10.eastmoney.com/jbgk_${code}.html`;
       try {
-        const f10Url = `https://fundf10.eastmoney.com/jbgk_${code}.html`;
         const f10Text = await httpGet(f10Url, { Referer: 'https://fund.eastmoney.com/' });
         
         // 提取基金公司名称（从基金管理人链接）
@@ -489,7 +573,56 @@ function calcReturn(history: any[], days: number): number {
   return Math.round((latest / old - 1) * 10000) / 100;
 }
 
-// ===== 基金列表接口（直接调用天天基金API，带缓存） =====
+// ===== URL-safe Base64 解码（前端用 base64url 编码中文关键词） =====
+function decodeKeyword(raw: string): string {
+  if (!raw) return '';
+  try {
+    const standardB64 = raw
+      .replace(/-/g, '+')
+      .replace(/_/g, '/') +
+      '=='.slice(0, (3 - raw.length % 3) % 3);
+    return decodeURIComponent(escape(Buffer.from(standardB64, 'base64').toString('binary')));
+  } catch {
+    return raw;
+  }
+}
+
+// ===== 将 fundtradenew 原始数据转为前端 Fund 格式 =====
+function normalizeTradeNewFund(f: any): any {
+  return {
+    id: f.code,
+    code: f.code,
+    name: f.name,
+    type: f.type || '混合型',
+    manager: '--',
+    company: '--',
+    establishDate: f.date || '--',
+    scale: 0,
+    riskLevel: 3,
+    nav: f.nav || 0,
+    accumulatedNav: f.accumulatedNav || 0,
+    dailyChange: f.dailyChange || 0,
+    year1Return: f.year1Return || 0,
+    year3Return: 0,
+    month6Return: 0,
+    month3Return: 0,
+    month1Return: 0,
+    thisYearReturn: 0,
+    sinceEstablishReturn: 0,
+    yearlyReturn: f.year1Return || 0,
+    riskMetrics: {
+      maxDrawdown: 0,
+      volatility: 0,
+      sharpeRatio: 0,
+      alpha: 0,
+      beta: 0,
+      informationRatio: 0,
+    },
+    source: 'eastmoney',
+  };
+}
+
+// ===== 基金列表接口（支持关键词搜索、高级筛选、排序、分页） =====
 app.get('/api/funds/list', async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -498,63 +631,122 @@ app.get('/api/funds/list', async (req, res) => {
     const sortBy = req.query.sortBy as string || 'year1Return';
     const sortOrder = req.query.sortOrder as string || 'desc';
 
-    // 缓存键
-    const cacheKey = `funds_list_${page}_${size}_${fundType}_${sortBy}_${sortOrder}`;
-    const cached = getCached<{ funds: any[]; total: number }>(cacheKey);
-    if (cached) {
-      return res.json({ ...cached, source: 'cache' });
-    }
+    const rawKeyword = req.query.keyword as string || '';
+    const keyword = decodeKeyword(rawKeyword);
+    const hasKeyword = keyword.trim().length > 0;
+
+    // 高级筛选参数
+    const filters = {
+      minYear1Return: req.query.minYear1Return ? parseFloat(req.query.minYear1Return as string) : undefined,
+      minYear3Return: req.query.minYear3Return ? parseFloat(req.query.minYear3Return as string) : undefined,
+      minMonth6Return: req.query.minMonth6Return ? parseFloat(req.query.minMonth6Return as string) : undefined,
+      minMonth3Return: req.query.minMonth3Return ? parseFloat(req.query.minMonth3Return as string) : undefined,
+      minMonth1Return: req.query.minMonth1Return ? parseFloat(req.query.minMonth1Return as string) : undefined,
+      minDailyChange: req.query.minDailyChange ? parseFloat(req.query.minDailyChange as string) : undefined,
+      minEstablishYears: req.query.minEstablishYears ? parseInt(req.query.minEstablishYears as string) : undefined,
+      excludeNewFunds: req.query.excludeNewFunds === 'true',
+    };
+    const hasFilters = Object.values(filters).some((v) => v !== undefined && v !== false);
 
     // 映射排序字段到天天基金API的排序字段
     const sortFieldMap: Record<string, string> = {
-      'year1Return': 'zzf', // 近1年收益
-      'year3Return': '3nzf', // 近3年收益
-      'month6Return': '6yzf', // 近6月收益
-      'month3Return': '3yzf', // 近3月收益
-      'month1Return': '1yzf', // 近1月收益
-      'dailyChange': 'rzdf', // 日涨跌幅
+      'year1Return': 'zzf',
+      'year3Return': '3nzf',
+      'month6Return': '6yzf',
+      'month3Return': '3yzf',
+      'month1Return': '1yzf',
+      'dailyChange': 'rzdf',
     };
     const apiSortField = sortFieldMap[sortBy] || 'zzf';
 
-    // 直接调用天天基金排行API
-    const { funds: rankFunds, total } = await fetchFundRank(page, size, apiSortField, sortOrder, fundType);
+    let rankFunds: any[] = [];
+    let rawTotal = 0;
 
-    // 转换为前端需要的格式
-    const funds = rankFunds.map(f => ({
-      id: f.code,
-      code: f.code,
-      name: f.name,
-      type: '混合型', // 天天基金API没有返回类型，暂时默认
-      manager: '--',
-      company: '--',
-      establishDate: f.establishDate,
-      scale: 0,
-      riskLevel: 3,
-      nav: f.nav,
-      accumulatedNav: f.accumulatedNav,
-      dailyChange: f.dailyChange,
-      year1Return: f.year1Return,
-      year3Return: f.year3Return,
-      month6Return: f.month6Return,
-      month3Return: f.month3Return,
-      month1Return: f.month1Return,
-      thisYearReturn: f.thisYearReturn,
-      sinceEstablishReturn: f.sinceEstablishReturn,
-      yearlyReturn: f.year1Return,
-      riskMetrics: {
-        maxDrawdown: 0,
-        volatility: 0,
-        sharpeRatio: 0,
-        alpha: 0,
-        beta: 0,
-        informationRatio: 0,
-      },
-      source: '1234567',
-    }));
+    if (hasKeyword) {
+      // 搜索模式：先拿到匹配代码，再从全量交易列表中过滤
+      const matchedCodes = new Set(await searchFundCodes(keyword));
+      if (matchedCodes.size === 0) {
+        return res.json({ funds: [], total: 0, source: 'search' });
+      }
+      const tradeRes = await fetchFundTradeNew(fundType, apiSortField, sortOrder);
+      rankFunds = tradeRes.funds
+        .filter((f: any) => matchedCodes.has(f.code))
+        .map(normalizeTradeNewFund);
+      rawTotal = rankFunds.length;
+    } else if (hasFilters) {
+      // 高级筛选模式：拉取 3 倍数据量后过滤再分页
+      const fetchSize = size * 3;
+      const rankRes = await fetchFundRank(page, fetchSize, apiSortField, sortOrder, fundType);
+      rankFunds = rankRes.funds;
+      rawTotal = rankRes.total;
+    } else {
+      // 普通列表模式
+      const rankRes = await fetchFundRank(page, size, apiSortField, sortOrder, fundType);
+      rankFunds = rankRes.funds;
+      rawTotal = rankRes.total;
+    }
 
-    const result = { funds, total, source: '1234567' };
-    setCache(cacheKey, result);
-    res.json(result);
+    // 应用高级筛选
+    if (hasFilters) {
+      rankFunds = rankFunds.filter((f: any) => {
+        if (filters.minYear1Return !== undefined && (f.year1Return || 0) < filters.minYear1Return) return false;
+        if (filters.minYear3Return !== undefined && (f.year3Return || 0) < filters.minYear3Return) return false;
+        if (filters.minMonth6Return !== undefined && (f.month6Return || 0) < filters.minMonth6Return) return false;
+        if (filters.minMonth3Return !== undefined && (f.month3Return || 0) < filters.minMonth3Return) return false;
+        if (filters.minMonth1Return !== undefined && (f.month1Return || 0) < filters.minMonth1Return) return false;
+        if (filters.minDailyChange !== undefined && (f.dailyChange || 0) < filters.minDailyChange) return false;
+        if (filters.minEstablishYears !== undefined) {
+          const years = f.establishDate ? (new Date().getFullYear() - new Date(f.establishDate).getFullYear()) : 0;
+          if (years < filters.minEstablishYears) return false;
+        }
+        if (filters.excludeNewFunds && f.establishDate) {
+          const years = new Date().getFullYear() - new Date(f.establishDate).getFullYear();
+          if (years < 1) return false;
+        }
+        return true;
+      });
+      // 二次分页
+      const start = (page - 1) * size;
+      rankFunds = rankFunds.slice(start, start + size);
+      rawTotal = rankFunds.length; // 这里显示过滤后的总数；如需原始总数可保留 rankRes.total
+    }
+
+    // 普通列表：已经是分页好的，直接转换
+    const funds = hasKeyword
+      ? rankFunds
+      : rankFunds.map((f: any) => ({
+          id: f.code,
+          code: f.code,
+          name: f.name,
+          type: f.type || '混合型',
+          manager: '--',
+          company: '--',
+          establishDate: f.establishDate,
+          scale: 0,
+          riskLevel: 3,
+          nav: f.nav,
+          accumulatedNav: f.accumulatedNav,
+          dailyChange: f.dailyChange,
+          year1Return: f.year1Return,
+          year3Return: f.year3Return,
+          month6Return: f.month6Return,
+          month3Return: f.month3Return,
+          month1Return: f.month1Return,
+          thisYearReturn: f.thisYearReturn,
+          sinceEstablishReturn: f.sinceEstablishReturn,
+          yearlyReturn: f.year1Return,
+          riskMetrics: {
+            maxDrawdown: 0,
+            volatility: 0,
+            sharpeRatio: 0,
+            alpha: 0,
+            beta: 0,
+            informationRatio: 0,
+          },
+          source: '1234567',
+        }));
+
+    res.json({ funds, total: rawTotal, source: hasKeyword ? 'search' : '1234567' });
   } catch (err) {
     console.error('Fund list error:', err);
     res.json({ funds: [], total: 0, source: 'error', error: String(err) });

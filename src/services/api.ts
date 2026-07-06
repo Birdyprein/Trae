@@ -13,18 +13,37 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   }
 }
 
+// 对中文关键词做 URL-safe Base64 编码，避免 + / = 在 URL 中被转义
+function encodeKeyword(kw: string): string {
+  return btoa(unescape(encodeURIComponent(kw)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 // ===== 基金API =====
 export async function fetchFundList(page = 1, size = 20, params?: {
   type?: string; sortBy?: string; sortOrder?: string; keyword?: string;
-}): Promise<{ funds: Fund[]; total: number }> {
+  minYear1Return?: number; minYear3Return?: number; minMonth6Return?: number;
+  minMonth3Return?: number; minMonth1Return?: number; minDailyChange?: number;
+  minEstablishYears?: number; excludeNewFunds?: boolean;
+}, signal?: AbortSignal): Promise<{ funds: Fund[]; total: number }> {
   const query = new URLSearchParams({
     page: String(page), size: String(size),
     ...(params?.type && { type: params.type }),
     ...(params?.sortBy && { sortBy: params.sortBy }),
     ...(params?.sortOrder && { sortOrder: params.sortOrder }),
-    ...(params?.keyword && { keyword: params.keyword }),
+    ...(params?.keyword && { keyword: encodeKeyword(params.keyword) }),
+    ...(params?.minYear1Return !== undefined && { minYear1Return: String(params.minYear1Return) }),
+    ...(params?.minYear3Return !== undefined && { minYear3Return: String(params.minYear3Return) }),
+    ...(params?.minMonth6Return !== undefined && { minMonth6Return: String(params.minMonth6Return) }),
+    ...(params?.minMonth3Return !== undefined && { minMonth3Return: String(params.minMonth3Return) }),
+    ...(params?.minMonth1Return !== undefined && { minMonth1Return: String(params.minMonth1Return) }),
+    ...(params?.minDailyChange !== undefined && { minDailyChange: String(params.minDailyChange) }),
+    ...(params?.minEstablishYears !== undefined && { minEstablishYears: String(params.minEstablishYears) }),
+    ...(params?.excludeNewFunds && { excludeNewFunds: 'true' }),
   });
-  return request<{ funds: Fund[]; total: number }>(`${API_BASE}/funds/list?${query}`);
+  return request<{ funds: Fund[]; total: number }>(`${API_BASE}/funds/list?${query}`, { signal });
 }
 
 export async function fetchFundDetail(code: string): Promise<FundDetail | null> {

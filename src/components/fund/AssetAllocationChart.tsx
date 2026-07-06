@@ -63,11 +63,14 @@ export default function AssetAllocationChart({ allocation }: AssetAllocationChar
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      background: 'rgba(20,20,35,0.9)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: '#f8f7f4',
+                      border: '1px solid #D4A853',
                       borderRadius: 8,
                       fontSize: 12,
+                      color: '#1a1a2e',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
                     }}
+                    itemStyle={{ color: '#1a1a2e' }}
                     formatter={(value: number) => [
                       `${formatPercent(totalAsset > 0 ? (value / totalAsset) * 100 : 0)}`,
                       '占比',
