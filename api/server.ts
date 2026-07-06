@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 
-const app = express();
+export const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
@@ -1411,7 +1411,10 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`API server running at http://localhost:${PORT}`);
-  console.log('Data sources: fundgz.1234567.com.cn, api.fund.eastmoney.com, push2.eastmoney.com (HTTP)');
-});
+// Vercel 通过 serverless-http 调用 app，不需要监听端口；本地/Render 直接运行时监听
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`API server running at http://localhost:${PORT}`);
+    console.log('Data sources: fundgz.1234567.com.cn, api.fund.eastmoney.com, push2.eastmoney.com (HTTP)');
+  });
+}
