@@ -1,8 +1,9 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -1400,6 +1401,15 @@ app.post('/api/analysis/portfolio', async (req, res) => {
     });
   }
 });
+
+// 生产环境：服务前端静态资源
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.resolve(__dirname, '../dist');
+  app.use(express.static(distPath));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.resolve(distPath, 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`API server running at http://localhost:${PORT}`);
