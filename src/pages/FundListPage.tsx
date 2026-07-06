@@ -57,6 +57,15 @@ export default function FundListPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 点击基金链接时立即保存当前滚动位置，避免组件卸载时页面已回到顶部导致保存为 0
+  const handleFundLinkClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const link = target.closest('a[href^="/funds/"]');
+    if (link) {
+      saveScrollState(page, keyword);
+    }
+  }, [page, keyword]);
+
   const buildParams = useCallback((kw: string, b: BasicFilter, a: AdvancedFilter) => {
     const type = b.type && b.type.length > 0 ? b.type.join(',') : undefined;
     return {
@@ -130,20 +139,29 @@ export default function FundListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  // 数据加载完成后恢复滚动位置
+  // 数据加载完成后恢复滚动位置：等 DOM 布局稳定后再 scrollTo，
+  // 避免页面高度未撑开导致只能滚动到较小值。
   useEffect(() => {
     if (!loading && funds.length > 0 && !restored) {
-      if (isRestoringRef.current && savedScrollY.current > 0) {
-        window.scrollTo({ top: savedScrollY.current, behavior: 'instant' as ScrollBehavior });
-      }
-      isRestoringRef.current = false;
-      setRestored(true);
+      const doRestore = () => {
+        if (isRestoringRef.current && savedScrollY.current > 0) {
+          window.scrollTo({ top: savedScrollY.current, behavior: 'instant' as ScrollBehavior });
+        }
+        isRestoringRef.current = false;
+        setRestored(true);
+      };
+      // 两次 rAF 确保内容渲染并布局完成
+      const rafId = requestAnimationFrame(() => {
+        requestAnimationFrame(doRestore);
+      });
+      return () => cancelAnimationFrame(rafId);
     }
   }, [loading, funds.length, restored]);
 
-  // 保存滚动位置
+  // 保存滚动位置，恢复期间不保存，避免 scrollTo 过程中写入错误值
   useEffect(() => {
     const handleScroll = () => {
+      if (isRestoringRef.current) return;
       if (scrollSaveRef.current) clearTimeout(scrollSaveRef.current);
       scrollSaveRef.current = setTimeout(() => {
         saveScrollState(page, keyword);
@@ -156,10 +174,13 @@ export default function FundListPage() {
     };
   }, [page, keyword]);
 
-  // 离开页面时保存状态
+  // 页面隐藏时保存状态（刷新、关闭标签页），组件卸载进入详情页时不保存，
+  // 避免详情页已经 scrollTo(0,0) 后把 0 覆盖掉点击链接时保存的真实位置
   useEffect(() => {
+    const handlePageHide = () => saveScrollState(page, keyword);
+    window.addEventListener('pagehide', handlePageHide);
     return () => {
-      saveScrollState(page, keyword);
+      window.removeEventListener('pagehide', handlePageHide);
       if (abortRef.current) abortRef.current.abort();
     };
   }, [page, keyword]);
@@ -211,7 +232,7 @@ export default function FundListPage() {
           />
         </div>
       ) : (
-        <>
+        <div onClick={handleFundLinkClick}>
           {/* 桌面：表格；移动：卡片网格 */}
           <div className="hidden md:block">
             <FundTable funds={funds} />
@@ -228,7 +249,7 @@ export default function FundListPage() {
             pageSize={PAGE_SIZE}
             onChange={setPage}
           />
-        </>
+        </div>
       )}
     </div>
   );

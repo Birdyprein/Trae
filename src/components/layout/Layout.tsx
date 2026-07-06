@@ -12,13 +12,23 @@ const SCROLL_STORAGE_KEY = 'fund-layout-scroll';
  * - 滚动位置管理：使用 sessionStorage 保存/恢复滚动位置
  * - main 区域有 pt-14 sm:pt-16 给导航栏留空间
  */
+const EXCLUDED_PATHS = ['/funds'];
+
 const Layout: React.FC = () => {
   const location = useLocation();
 
-  // 路由切换时恢复该路径的滚动位置
+  // 禁用浏览器默认滚动恢复，避免与手动恢复冲突
+  useEffect(() => {
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  // 路由切换时恢复该路径的滚动位置（基金列表页自行管理，不参与）
   useEffect(() => {
     const restoreScroll = () => {
       try {
+        if (EXCLUDED_PATHS.includes(location.pathname)) return;
         const raw = sessionStorage.getItem(SCROLL_STORAGE_KEY);
         if (!raw) return;
         const map: Record<string, number> = JSON.parse(raw);
@@ -34,10 +44,11 @@ const Layout: React.FC = () => {
     return () => cancelAnimationFrame(rafId);
   }, [location.pathname]);
 
-  // 离开页面 / 路由变化前保存当前滚动位置
+  // 离开页面 / 路由变化前保存当前滚动位置（基金列表页自行管理，不参与）
   useEffect(() => {
     const handleSaveScroll = () => {
       try {
+        if (EXCLUDED_PATHS.includes(location.pathname)) return;
         const raw = sessionStorage.getItem(SCROLL_STORAGE_KEY);
         const map: Record<string, number> = raw ? JSON.parse(raw) : {};
         map[location.pathname] = window.scrollY ?? 0;
