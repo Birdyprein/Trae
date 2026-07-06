@@ -39,6 +39,14 @@ const Footer: React.FC = () => {
             <span>Liquid Glass Design</span>
             <span className="hidden sm:inline">·</span>
             <span>仅供学习研究</span>
+            <span className="hidden sm:inline">·</span>
+            <a
+              href="mailto:1175527050@qq.com"
+              className="hover:text-gold-400 transition-colors"
+              title="联系作者"
+            >
+              1175527050@qq.com
+            </a>
           </div>
         </div>
       </div>
