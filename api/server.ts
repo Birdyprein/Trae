@@ -67,6 +67,109 @@ function parseJsonp(text: string): any {
   return null;
 }
 
+// ===== HTTP请求（返回Buffer，用于GBK编码内容） =====
+async function httpGetBuffer(url: string, headers?: Record<string, string>): Promise<Buffer> {
+  const maxRetries = 3;
+  const timeout = 10000; // 10秒超时
+  let lastError: Error | null = null;
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          ...headers,
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      return Buffer.from(await res.arrayBuffer());
+    } catch (err) {
+      lastError = err as Error;
+      console.log(`httpGetBuffer retry ${i + 1}/${maxRetries} failed for ${url}`);
+      if (i < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
+// ===== 新浪行情：批量报价（返回 代码 -> 字段数组） =====
+async function fetchSinaQuotes(codes: string[]): Promise<Record<string, string[]>> {
+  if (codes.length === 0) return {};
+  const url = `https://hq.sinajs.cn/list=${codes.join(',')}`;
+  const buf = await httpGetBuffer(url, { Referer: 'https://finance.sina.com.cn' });
+  const text = new TextDecoder('gbk').decode(buf);
+  const out: Record<string, string[]> = {};
+  const re = /hq_str_([A-Za-z0-9_]+)="([^"]*)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    out[m[1]] = m[2].length > 0 ? m[2].split(',') : [];
+  }
+  return out;
+}
+
+// 把新浪行情字段解析为统一的市场指数结构
+function parseSinaIndex(code: string, fallbackName: string, f: string[]) {
+  if (!f || f.length === 0) return null;
+  if (code.startsWith('rt_hk')) {
+    // 港股：代码,名称,今开,昨收,最高,最低,现价,涨跌,涨跌幅,...
+    const value = parseFloat(f[6]) || 0;
+    return {
+      code,
+      name: f[1] || fallbackName,
+      value,
+      change: parseFloat(f[7]) || 0,
+      changePercent: parseFloat(f[8]) || 0,
+      high: parseFloat(f[4]) || 0,
+      low: parseFloat(f[5]) || 0,
+      open: parseFloat(f[2]) || 0,
+      prevClose: parseFloat(f[3]) || 0,
+    };
+  }
+  if (code.startsWith('gb_')) {
+    // 美股：名称,现价,涨跌幅,时间,涨跌额,今开,最高,最低,...
+    const value = parseFloat(f[1]) || 0;
+    const change = parseFloat(f[4]) || 0;
+    return {
+      code,
+      name: f[0] || fallbackName,
+      value,
+      change,
+      changePercent: parseFloat(f[2]) || 0,
+      high: parseFloat(f[6]) || 0,
+      low: parseFloat(f[7]) || 0,
+      open: parseFloat(f[5]) || 0,
+      prevClose: value - change,
+    };
+  }
+  // A股/指数：名称,今开,昨收,现价,最高,最低,...
+  const prevClose = parseFloat(f[2]) || 0;
+  const value = parseFloat(f[3]) || 0;
+  const change = value - prevClose;
+  return {
+    code,
+    name: f[0] || fallbackName,
+    value,
+    change,
+    changePercent: prevClose ? (change / prevClose) * 100 : 0,
+    high: parseFloat(f[4]) || 0,
+    low: parseFloat(f[5]) || 0,
+    open: parseFloat(f[1]) || 0,
+    prevClose,
+  };
+}
+
+// 交易所ETF/指数代码转新浪代码前缀（5开头为沪市，1开头为深市）
+function toSinaCode(code: string): string {
+  return `${code.startsWith('1') ? 'sz' : 'sh'}${code}`;
+}
+
 // ===== 天天基金接口：基金排行（获取所有基金） =====
 async function fetchFundRank(page: number = 1, pageSize: number = 20, sortField: string = 'zzf', sortOrder: string = 'desc', fundType: string = 'all'): Promise<{ funds: any[], total: number }> {
   try {
@@ -827,7 +930,7 @@ app.get('/api/funds/:code/detail', async (req, res) => {
 
     const nav = estimate?.nav || (history[0] ? parseFloat(history[0].DWJZ) : 0);
     let accumulatedNav = history[0] ? parseFloat(history[0].LJJZ) || 0 : 0;
-    const dailyChange = estimate?.estimatedChange || 0;
+    const dailyChange = estimate?.estimatedChange || (history[0] ? parseFloat(history[0].JZZZL) || 0 : 0);
 
     // 如果历史净值数据为空，尝试从基金主页面获取累计净值
     if (history.length === 0 && accumulatedNav === 0) {
@@ -1015,107 +1118,93 @@ app.get('/api/funds/:code/nav', async (req, res) => {
   res.json({ data: [], source: 'empty' });
 });
 
-// ===== 市场指数接口（天天基金ETF估值） =====
+// ===== 市场指数接口（新浪行情：A股/港股/美股指数） =====
+const MARKET_INDEX_LIST = [
+  { code: 'sh000001', name: '上证指数' },
+  { code: 'sz399001', name: '深证成指' },
+  { code: 'sz399006', name: '创业板指' },
+  { code: 'sh000688', name: '科创50' },
+  { code: 'rt_hkHSI', name: '恒生指数' },
+  { code: 'gb_ixic', name: '纳斯达克' },
+];
+
 app.get('/api/market/indices', async (_req, res) => {
   try {
-    // 使用天天基金ETF估值数据
-    const etfCodes = [
-      { code: '510300', name: '沪深300ETF' },
-      { code: '510050', name: '上证50ETF' },
-      { code: '159915', name: '创业板ETF' },
-      { code: '510500', name: '中证500ETF' },
-      { code: '159949', name: '创业板50ETF' },
-      { code: '513100', name: '纳指ETF' },
-    ];
-    
-    const results = await Promise.all(etfCodes.map(async (etf) => {
-      const estimate = await fetchFundEstimate(etf.code);
-      if (estimate) {
-        return {
-          code: etf.code,
-          name: estimate.name || etf.name,
-          value: estimate.nav,
-          change: estimate.estimatedNav - estimate.nav,
-          changePercent: estimate.estimatedChange,
-          high: 0,
-          low: 0,
-          open: 0,
-          prevClose: estimate.nav,
-        };
-      }
-      return null;
-    }));
-    
-    const indices = results.filter(r => r !== null);
-    res.json({ success: true, data: indices, source: '1234567' });
+    const quotes = await fetchSinaQuotes(MARKET_INDEX_LIST.map((i) => i.code));
+    const indices = MARKET_INDEX_LIST
+      .map((item) => parseSinaIndex(item.code, item.name, quotes[item.code]))
+      .filter((r) => r !== null);
+    res.json({ success: true, data: indices, source: 'sina' });
   } catch (err) {
     console.error('Market indices error:', err);
     res.json({ success: false, data: [], source: 'error' });
   }
 });
 
-// ===== 指数历史K线（天天基金历史净值） =====
+// ===== 指数历史K线（新浪财经：上证指数日K） =====
 app.get('/api/market/index-history', async (req, res) => {
   const days = parseInt(req.query.days as string) || 30;
   try {
-    // 使用沪深300ETF的历史净值作为指数走势
-    const code = '510300';
-    const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=${days}`;
-    const text = await httpGet(url, { Referer: `https://fund.eastmoney.com/${code}.html` });
-    const data = JSON.parse(text);
-    const history = (data.Data?.LSJZList || []).map((item: any) => ({
-      date: item.FSRQ,
-      value: parseFloat(item.DWJZ) || 0,
-    })).reverse();
-    res.json({ success: true, data: history, source: '1234567' });
-  } catch {
+    const url = `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=sh000001&scale=240&ma=no&datalen=${days}`;
+    const text = await httpGet(url, { Referer: 'https://finance.sina.com.cn' });
+    const arr = JSON.parse(text);
+    const data = (Array.isArray(arr) ? arr : []).map((item: any) => ({
+      date: item.day,
+      value: parseFloat(item.close) || 0,
+    }));
+    res.json({ success: true, data, source: 'sina' });
+  } catch (err) {
+    console.error('Index history error:', err);
     res.json({ success: false, data: [], source: 'error' });
   }
 });
 
-// ===== 板块行情接口（天天基金行业主题ETF） =====
+// ===== 板块行情接口（新浪行情：行业主题ETF涨跌） =====
+const SECTOR_ETFS = [
+  { code: '512690', name: '酒' },
+  { code: '512480', name: '半导体' },
+  { code: '512800', name: '银行' },
+  { code: '515030', name: '新能源车' },
+  { code: '516160', name: '新能源' },
+  { code: '512660', name: '军工' },
+  { code: '512200', name: '房地产' },
+  { code: '512170', name: '医疗' },
+  { code: '515050', name: '5G' },
+  { code: '515880', name: '通信' },
+  { code: '512980', name: '传媒' },
+  { code: '512580', name: '环保' },
+  { code: '512510', name: '食品饮料' },
+  { code: '512400', name: '有色金属' },
+  { code: '512280', name: '计算机' },
+  { code: '512950', name: '基建' },
+  { code: '512880', name: '证券' },
+  { code: '515220', name: '煤炭' },
+  { code: '512120', name: '医药' },
+  { code: '515170', name: '食品' },
+];
+
 app.get('/api/market/sectors', async (_req, res) => {
   try {
-    // 使用行业主题ETF的估值数据模拟板块行情
-    const sectorETFs = [
-      { code: '512690', name: '酒ETF' },
-      { code: '512480', name: '半导体ETF' },
-      { code: '512800', name: '银行ETF' },
-      { code: '515030', name: '新能源车ETF' },
-      { code: '516160', name: '新能源ETF' },
-      { code: '512660', name: '军工ETF' },
-      { code: '512200', name: '房地产ETF' },
-      { code: '512170', name: '医疗ETF' },
-      { code: '515050', name: '5GETF' },
-      { code: '515880', name: '通信ETF' },
-      { code: '512980', name: '传媒ETF' },
-      { code: '512580', name: '环保ETF' },
-      { code: '512510', name: '食品饮料ETF' },
-      { code: '512400', name: '有色金属ETF' },
-      { code: '512280', name: '计算机ETF' },
-      { code: '512950', name: '基建ETF' },
-      { code: '512880', name: '证券ETF' },
-      { code: '515220', name: '煤炭ETF' },
-      { code: '512120', name: '医药ETF' },
-      { code: '515170', name: '食品ETF' },
-    ];
-    
-    const results = await Promise.all(sectorETFs.map(async (etf) => {
-      const estimate = await fetchFundEstimate(etf.code);
-      if (estimate) {
-        return {
-          code: etf.code,
-          name: estimate.name || etf.name,
-          change: estimate.estimatedChange,
-          volume: 0,
-        };
-      }
-      return null;
-    }));
-    
-    const sectors = results.filter(r => r !== null).sort((a, b) => b.change - a.change);
-    res.json({ success: true, data: sectors, source: '1234567' });
-  } catch {
+    const quotes = await fetchSinaQuotes(SECTOR_ETFS.map((etf) => toSinaCode(etf.code)));
+    const sectors = SECTOR_ETFS.map((etf) => {
+      const f = quotes[toSinaCode(etf.code)];
+      if (!f || f.length === 0) return null;
+      const prevClose = parseFloat(f[2]) || 0;
+      const value = parseFloat(f[3]) || 0;
+      const change = prevClose ? ((value - prevClose) / prevClose) * 100 : 0;
+      const amount = parseFloat(f[9]) || 0; // 成交额（元）
+      return {
+        code: etf.code,
+        name: etf.name,
+        change,
+        volume: amount / 1e8, // 转为亿元，供前端 formatVolume 使用
+      };
+    }).filter((r) => r !== null) as Array<{ code: string; name: string; change: number; volume: number }>;
+
+    sectors.sort((a, b) => b.change - a.change);
+    res.json({ success: true, data: sectors, source: 'sina' });
+  } catch (err) {
+    console.error('Market sectors error:', err);
     res.json({ success: false, data: [], source: 'error' });
   }
 });
